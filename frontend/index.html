@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mathematical Tools - Abaj.ai</title>
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --secondary-color: #1e40af;
+            --background-color: #f8fafc;
+            --text-color: #1e293b;
+            --border-color: #e2e8f0;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            background-color: var(--background-color);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+        }
+
+        .tools-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+
+        .tool-card {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s;
+        }
+
+        .tool-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .tool-card h2 {
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+        }
+
+        .input-group {
+            margin-bottom: 1rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        input {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+
+        button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background-color 0.2s;
+        }
+
+        button:hover {
+            background-color: var(--secondary-color);
+        }
+
+        .result {
+            margin-top: 1rem;
+            padding: 1rem;
+            background-color: var(--background-color);
+            border-radius: 4px;
+            display: none;
+        }
+
+        .result.show {
+            display: block;
+        }
+
+        .error {
+            color: #dc2626;
+            margin-top: 0.5rem;
+            display: none;
+        }
+
+        .error.show {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Mathematical Tools</h1>
+            <p>A collection of useful mathematical calculators</p>
+        </header>
+
+        <div class="tools-grid">
+            <!-- GCD Calculator -->
+            <div class="tool-card">
+                <h2>GCD Calculator</h2>
+                <div class="input-group">
+                    <label for="gcd-a">First Number:</label>
+                    <input type="number" id="gcd-a" placeholder="Enter first number">
+                </div>
+                <div class="input-group">
+                    <label for="gcd-b">Second Number:</label>
+                    <input type="number" id="gcd-b" placeholder="Enter second number">
+                </div>
+                <button onclick="calculateGCD()">Calculate GCD</button>
+                <div id="gcd-result" class="result"></div>
+                <div id="gcd-error" class="error"></div>
+            </div>
+
+            <!-- LCM Calculator -->
+            <div class="tool-card">
+                <h2>LCM Calculator</h2>
+                <div class="input-group">
+                    <label for="lcm-a">First Number:</label>
+                    <input type="number" id="lcm-a" placeholder="Enter first number">
+                </div>
+                <div class="input-group">
+                    <label for="lcm-b">Second Number:</label>
+                    <input type="number" id="lcm-b" placeholder="Enter second number">
+                </div>
+                <button onclick="calculateLCM()">Calculate LCM</button>
+                <div id="lcm-result" class="result"></div>
+                <div id="lcm-error" class="error"></div>
+            </div>
+
+            <!-- Primality Checker -->
+            <div class="tool-card">
+                <h2>Primality Checker</h2>
+                <div class="input-group">
+                    <label for="prime-n">Number:</label>
+                    <input type="number" id="prime-n" placeholder="Enter a number">
+                </div>
+                <button onclick="checkPrime()">Check if Prime</button>
+                <div id="prime-result" class="result"></div>
+                <div id="prime-error" class="error"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '/api';
+
+        async function makeRequest(endpoint, data) {
+            try {
+                const response = await fetch(`${API_BASE}${endpoint}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data),
+                });
+                return await response.json();
+            } catch (error) {
+                throw new Error('Network error occurred');
+            }
+        }
+
+        function showResult(elementId, result) {
+            const element = document.getElementById(elementId);
+            element.textContent = `Result: ${result}`;
+            element.classList.add('show');
+        }
+
+        function showError(elementId, message) {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.classList.add('show');
+        }
+
+        function hideResult(elementId) {
+            const element = document.getElementById(elementId);
+            element.classList.remove('show');
+        }
+
+        function hideError(elementId) {
+            const element = document.getElementById(elementId);
+            element.classList.remove('show');
+        }
+
+        async function calculateGCD() {
+            const a = parseInt(document.getElementById('gcd-a').value);
+            const b = parseInt(document.getElementById('gcd-b').value);
+            
+            hideResult('gcd-result');
+            hideError('gcd-error');
+
+            try {
+                const response = await makeRequest('/gcd', { a, b });
+                if (response.error) {
+                    showError('gcd-error', response.error);
+                } else {
+                    showResult('gcd-result', response.result);
+                }
+            } catch (error) {
+                showError('gcd-error', error.message);
+            }
+        }
+
+        async function calculateLCM() {
+            const a = parseInt(document.getElementById('lcm-a').value);
+            const b = parseInt(document.getElementById('lcm-b').value);
+            
+            hideResult('lcm-result');
+            hideError('lcm-error');
+
+            try {
+                const response = await makeRequest('/lcm', { a, b });
+                if (response.error) {
+                    showError('lcm-error', response.error);
+                } else {
+                    showResult('lcm-result', response.result);
+                }
+            } catch (error) {
+                showError('lcm-error', error.message);
+            }
+        }
+
+        async function checkPrime() {
+            const n = parseInt(document.getElementById('prime-n').value);
+            
+            hideResult('prime-result');
+            hideError('prime-error');
+
+            try {
+                const response = await makeRequest('/prime', { n });
+                if (response.error) {
+                    showError('prime-error', response.error);
+                } else {
+                    showResult('prime-result', response.result ? 'Prime' : 'Not Prime');
+                }
+            } catch (error) {
+                showError('prime-error', error.message);
+            }
+        }
+    </script>
+</body>
+</html> 
