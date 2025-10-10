@@ -16,7 +16,7 @@
     
     <style>
         :root {
-            --primary-color: #2563eb;
+            --primary-color: #6700A7;
             --secondary-color: #1e40af;
             --background-color: #f8fafc;
             --text-color: #1e293b;
@@ -194,6 +194,79 @@
             width: 40%;
         }
 
+        /* Matrix input styling */
+        .matrix-controls {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .matrix-controls > div {
+            flex: 1;
+            min-width: 100px;
+        }
+
+        .matrix-grid {
+            display: grid;
+            gap: 0.5rem;
+            margin: 1rem 0;
+            max-width: 100%;
+            overflow-x: auto;
+        }
+
+        .matrix-grid input {
+            width: 100%;
+            min-width: 50px;
+            text-align: center;
+            padding: 0.5rem;
+            font-family: 'Courier New', monospace;
+        }
+
+        .matrix-actions {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin-top: 1rem;
+        }
+
+        .matrix-actions button {
+            flex: 1;
+            min-width: 120px;
+            font-size: 0.9rem;
+            padding: 0.5rem;
+        }
+
+        .vector-input {
+            margin-top: 1rem;
+            padding: 1rem;
+            background-color: #f8fafc;
+            border-radius: 6px;
+            display: none;
+        }
+
+        .vector-input.show {
+            display: block;
+        }
+
+        .vector-grid {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin-top: 0.5rem;
+        }
+
+        .vector-grid input {
+            width: 70px;
+            text-align: center;
+            padding: 0.5rem;
+            font-family: 'Courier New', monospace;
+        }
+
+        .matrix-full-width {
+            grid-column: 1 / -1;
+        }
+
         @media (max-width: 768px) {
             .container {
                 padding: 1rem;
@@ -206,13 +279,67 @@
             .tools-grid {
                 grid-template-columns: 1fr;
             }
+
+            .matrix-controls {
+                flex-direction: column;
+            }
+
+            .matrix-grid input {
+                min-width: 40px;
+                padding: 0.4rem;
+                font-size: 0.9rem;
+            }
+
+            .vector-grid input {
+                width: 60px;
+                padding: 0.4rem;
+                font-size: 0.9rem;
+            }
+
+            .matrix-actions button {
+                min-width: 100%;
+                font-size: 0.85rem;
+            }
+
+            header img {
+                width: 48px !important;
+                height: 48px !important;
+            }
+
+            h1 {
+                font-size: 1.75rem;
+            }
+
+            .tool-card {
+                padding: 1rem;
+            }
+
+            .section-title {
+                font-size: 1.5rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 0.5rem;
+            }
+
+            .matrix-grid input {
+                min-width: 35px;
+                padding: 0.3rem;
+                font-size: 0.85rem;
+            }
+
+            .vector-grid input {
+                width: 50px;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
-            <img src="/icons/icon.svg" alt="Tools Icon">
+            <img style="width: 164px; height: 164px;" src="/icons/icon.svg" alt="Tools Icon">
             <h1>Mathematical Tools</h1>
             <p>A comprehensive collection of mathematical calculators and converters</p>
         </header>
@@ -520,6 +647,48 @@
                 <button onclick="calculateDiscriminant()">Calculate Discriminant</button>
                 <div id="disc-result" class="result"></div>
                 <div id="disc-error" class="error"></div>
+            </div>
+        </div>
+
+        <h2 class="section-title">🔢 Linear Algebra</h2>
+        <div class="tools-grid">
+            <!-- Matrix Calculator -->
+            <div class="tool-card matrix-full-width">
+                <h2>Matrix Calculator</h2>
+                <p style="font-size: 0.9rem; color: #64748b; margin-bottom: 1rem;">
+                    Enter a matrix and choose an operation below
+                </p>
+                
+                <div class="matrix-controls">
+                    <div class="input-group" style="margin: 0;">
+                        <label for="matrix-rows">Rows:</label>
+                        <input type="number" id="matrix-rows" min="1" max="10" value="3" onchange="updateMatrixGrid()">
+                    </div>
+                    <div class="input-group" style="margin: 0;">
+                        <label for="matrix-cols">Columns:</label>
+                        <input type="number" id="matrix-cols" min="1" max="10" value="3" onchange="updateMatrixGrid()">
+                    </div>
+                    <div class="input-group" style="margin: 0;">
+                        <label>&nbsp;</label>
+                        <button onclick="fillMatrixExample()" style="width: 100%; background-color: #64748b;">Fill Example</button>
+                    </div>
+                </div>
+
+                <div id="matrix-grid-container" class="matrix-grid"></div>
+
+                <div class="vector-input" id="vector-input-section">
+                    <label><strong>Vector b (for Ax = b):</strong></label>
+                    <div id="vector-grid-container" class="vector-grid"></div>
+                </div>
+
+                <div class="matrix-actions">
+                    <button onclick="calculateMatrixRank()">Calculate Rank</button>
+                    <button onclick="calculateMatrixDeterminant()">Calculate Determinant</button>
+                    <button onclick="toggleVectorInput()">Solve System (Ax = b)</button>
+                </div>
+
+                <div id="matrix-result" class="result"></div>
+                <div id="matrix-error" class="error"></div>
             </div>
         </div>
     </div>
@@ -931,6 +1100,214 @@
                 showError('collatz-error', error.message);
             }
         }
+
+        // Matrix Calculator Functions
+        let vectorInputVisible = false;
+
+        function updateMatrixGrid() {
+            const rows = parseInt(document.getElementById('matrix-rows').value);
+            const cols = parseInt(document.getElementById('matrix-cols').value);
+            
+            if (rows < 1 || rows > 10 || cols < 1 || cols > 10) {
+                return;
+            }
+
+            const container = document.getElementById('matrix-grid-container');
+            container.innerHTML = '';
+            container.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+
+            for (let i = 0; i < rows; i++) {
+                for (let j = 0; j < cols; j++) {
+                    const input = document.createElement('input');
+                    input.type = 'number';
+                    input.step = '0.01';
+                    input.placeholder = `a${i+1}${j+1}`;
+                    input.id = `matrix-${i}-${j}`;
+                    input.value = '0';
+                    container.appendChild(input);
+                }
+            }
+
+            // Update vector inputs
+            updateVectorGrid();
+        }
+
+        function updateVectorGrid() {
+            const rows = parseInt(document.getElementById('matrix-rows').value);
+            const container = document.getElementById('vector-grid-container');
+            container.innerHTML = '';
+
+            for (let i = 0; i < rows; i++) {
+                const input = document.createElement('input');
+                input.type = 'number';
+                input.step = '0.01';
+                input.placeholder = `b${i+1}`;
+                input.id = `vector-${i}`;
+                input.value = '0';
+                container.appendChild(input);
+            }
+        }
+
+        function fillMatrixExample() {
+            const rows = parseInt(document.getElementById('matrix-rows').value);
+            const cols = parseInt(document.getElementById('matrix-cols').value);
+
+            // Fill with a simple example matrix
+            const examples = [
+                [[2, 1, -1], [-3, -1, 2], [-2, 1, 2]], // 3x3
+                [[1, 2], [3, 4]], // 2x2
+                [[1, 0, 2], [0, 1, 3]] // 2x3
+            ];
+
+            let example = examples[0];
+            if (rows === 2 && cols === 2) example = examples[1];
+            else if (rows === 2 && cols === 3) example = examples[2];
+
+            for (let i = 0; i < rows; i++) {
+                for (let j = 0; j < cols; j++) {
+                    const input = document.getElementById(`matrix-${i}-${j}`);
+                    if (input && example[i] && example[i][j] !== undefined) {
+                        input.value = example[i][j];
+                    } else {
+                        input.value = Math.floor(Math.random() * 10) - 3;
+                    }
+                }
+            }
+
+            // Fill vector example
+            const vectorExamples = [[8, -11, -3], [5, 11], [5, 8]];
+            let vecExample = vectorExamples[0];
+            if (rows === 2 && cols === 2) vecExample = vectorExamples[1];
+            else if (rows === 2 && cols === 3) vecExample = vectorExamples[2];
+
+            for (let i = 0; i < rows; i++) {
+                const input = document.getElementById(`vector-${i}`);
+                if (input && vecExample[i] !== undefined) {
+                    input.value = vecExample[i];
+                } else {
+                    input.value = Math.floor(Math.random() * 10);
+                }
+            }
+        }
+
+        function getMatrixFromInputs() {
+            const rows = parseInt(document.getElementById('matrix-rows').value);
+            const cols = parseInt(document.getElementById('matrix-cols').value);
+            const matrix = [];
+
+            for (let i = 0; i < rows; i++) {
+                const row = [];
+                for (let j = 0; j < cols; j++) {
+                    const input = document.getElementById(`matrix-${i}-${j}`);
+                    row.push(parseFloat(input.value) || 0);
+                }
+                matrix.push(row);
+            }
+
+            return matrix;
+        }
+
+        function getVectorFromInputs() {
+            const rows = parseInt(document.getElementById('matrix-rows').value);
+            const vector = [];
+
+            for (let i = 0; i < rows; i++) {
+                const input = document.getElementById(`vector-${i}`);
+                vector.push(parseFloat(input.value) || 0);
+            }
+
+            return vector;
+        }
+
+        function toggleVectorInput() {
+            vectorInputVisible = !vectorInputVisible;
+            const section = document.getElementById('vector-input-section');
+            
+            if (vectorInputVisible) {
+                section.classList.add('show');
+                solveGaussianElimination();
+            } else {
+                section.classList.remove('show');
+            }
+        }
+
+        async function calculateMatrixRank() {
+            hideResult('matrix-result');
+            hideError('matrix-error');
+
+            const matrix = getMatrixFromInputs();
+
+            try {
+                const response = await makeRequest('/matrix-rank', { matrix });
+                if (response.error) {
+                    showError('matrix-error', response.error);
+                } else {
+                    showResult('matrix-result', `<strong>Matrix Rank:</strong> ${response.result}`);
+                }
+            } catch (error) {
+                showError('matrix-error', error.message);
+            }
+        }
+
+        async function calculateMatrixDeterminant() {
+            hideResult('matrix-result');
+            hideError('matrix-error');
+
+            const matrix = getMatrixFromInputs();
+            const rows = matrix.length;
+            const cols = matrix[0].length;
+
+            if (rows !== cols) {
+                showError('matrix-error', 'Determinant is only defined for square matrices');
+                return;
+            }
+
+            try {
+                const response = await makeRequest('/matrix-determinant', { matrix });
+                if (response.error) {
+                    showError('matrix-error', response.error);
+                } else {
+                    showResult('matrix-result', `<strong>Determinant:</strong> ${response.result.toFixed(6)}`);
+                }
+            } catch (error) {
+                showError('matrix-error', error.message);
+            }
+        }
+
+        async function solveGaussianElimination() {
+            hideResult('matrix-result');
+            hideError('matrix-error');
+
+            const matrix = getMatrixFromInputs();
+            const vector = getVectorFromInputs();
+
+            try {
+                const response = await makeRequest('/gaussian-elimination', { matrix, vector });
+                if (response.error) {
+                    showError('matrix-error', response.error);
+                } else {
+                    const result = response.result;
+                    if (result.hasSolution) {
+                        let resultText = `<strong>${result.message}</strong><br><br>`;
+                        resultText += '<strong>Solution (x):</strong><br>';
+                        result.solution.forEach((val, i) => {
+                            resultText += `x<sub>${i+1}</sub> = ${val.toFixed(6)}<br>`;
+                        });
+                        showResult('matrix-result', resultText);
+                    } else {
+                        showResult('matrix-result', `<strong>${result.message}</strong>`);
+                    }
+                }
+            } catch (error) {
+                showError('matrix-error', error.message);
+            }
+        }
+
+        // Initialize matrix grid on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            updateMatrixGrid();
+            fillMatrixExample();
+        });
     </script>
 </body>
 </html>

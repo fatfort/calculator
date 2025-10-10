@@ -1,6 +1,6 @@
 # Mathematical Tools - tools.abaj.ai
 
-A comprehensive collection of mathematical calculators and converters built with Go backend and vanilla JavaScript frontend.
+A comprehensive collection of 23 mathematical calculators and converters built with Go backend and vanilla JavaScript frontend.
 
 ## Features
 
@@ -34,6 +34,11 @@ A comprehensive collection of mathematical calculators and converters built with
 ### Algebra
 - **Quadratic Solver** - Solve ax² + bx + c = 0 (supports complex roots)
 - **Discriminant Calculator** - Calculate b² - 4ac
+
+### Linear Algebra
+- **Matrix Rank** - Calculate the rank of any matrix
+- **Matrix Determinant** - Calculate determinant of square matrices
+- **Gaussian Elimination** - Solve systems of linear equations (Ax = b)
 
 ## Architecture
 
@@ -126,6 +131,9 @@ All calculators use optimal algorithms:
 | Temperature | O(1) | O(1) |
 | Quadratic | O(1) | O(1) |
 | Collatz | O(n) | O(1) |
+| Matrix Rank | O(n²m) | O(nm) |
+| Matrix Determinant | O(n³) | O(n²) |
+| Gaussian Elimination | O(n³) | O(n²) |
 
 ## API Endpoints
 
@@ -163,6 +171,11 @@ All endpoints accept POST requests with JSON payloads:
 ### Algebra
 - `/quadratic-solver` - `{"a": float, "b": float, "c": float}`
 - `/discriminant` - `{"a": float, "b": float, "c": float}`
+
+### Linear Algebra
+- `/matrix-rank` - `{"matrix": [[float]]}`
+- `/matrix-determinant` - `{"matrix": [[float]]}`
+- `/gaussian-elimination` - `{"matrix": [[float]], "vector": [float]}`
 
 ## Development
 

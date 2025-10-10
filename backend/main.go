@@ -355,6 +355,239 @@ func collatzLength(n int64) int64 {
 	return length
 }
 
+// Matrix operations
+
+// Matrix type
+type Matrix [][]float64
+
+// Create a copy of a matrix
+func copyMatrix(m Matrix) Matrix {
+	rows := len(m)
+	if rows == 0 {
+		return Matrix{}
+	}
+	cols := len(m[0])
+	copy := make(Matrix, rows)
+	for i := 0; i < rows; i++ {
+		copy[i] = make([]float64, cols)
+		for j := 0; j < cols; j++ {
+			copy[i][j] = m[i][j]
+		}
+	}
+	return copy
+}
+
+// Matrix rank using row echelon form - O(n²m) where n=rows, m=cols
+func matrixRank(m Matrix) int {
+	if len(m) == 0 || len(m[0]) == 0 {
+		return 0
+	}
+	
+	// Work with a copy
+	mat := copyMatrix(m)
+	rows := len(mat)
+	cols := len(mat[0])
+	
+	rank := 0
+	epsilon := 1e-10 // For floating point comparison
+	
+	for col := 0; col < cols && rank < rows; col++ {
+		// Find pivot
+		pivotRow := -1
+		for row := rank; row < rows; row++ {
+			if math.Abs(mat[row][col]) > epsilon {
+				pivotRow = row
+				break
+			}
+		}
+		
+		if pivotRow == -1 {
+			continue // No pivot in this column
+		}
+		
+		// Swap rows
+		if pivotRow != rank {
+			mat[pivotRow], mat[rank] = mat[rank], mat[pivotRow]
+		}
+		
+		// Eliminate below
+		pivot := mat[rank][col]
+		for row := rank + 1; row < rows; row++ {
+			if math.Abs(mat[row][col]) > epsilon {
+				factor := mat[row][col] / pivot
+				for c := col; c < cols; c++ {
+					mat[row][c] -= factor * mat[rank][c]
+				}
+			}
+		}
+		
+		rank++
+	}
+	
+	return rank
+}
+
+// Matrix determinant using LU decomposition - O(n³)
+func matrixDeterminant(m Matrix) (float64, error) {
+	if len(m) == 0 {
+		return 0, fmt.Errorf("empty matrix")
+	}
+	
+	rows := len(m)
+	cols := len(m[0])
+	
+	if rows != cols {
+		return 0, fmt.Errorf("determinant only defined for square matrices")
+	}
+	
+	n := rows
+	mat := copyMatrix(m)
+	epsilon := 1e-10
+	det := 1.0
+	
+	// Gaussian elimination with partial pivoting
+	for i := 0; i < n; i++ {
+		// Find pivot
+		maxRow := i
+		for k := i + 1; k < n; k++ {
+			if math.Abs(mat[k][i]) > math.Abs(mat[maxRow][i]) {
+				maxRow = k
+			}
+		}
+		
+		// Swap rows
+		if maxRow != i {
+			mat[i], mat[maxRow] = mat[maxRow], mat[i]
+			det = -det // Row swap changes sign of determinant
+		}
+		
+		// Check for zero pivot (singular matrix)
+		if math.Abs(mat[i][i]) < epsilon {
+			return 0, nil
+		}
+		
+		det *= mat[i][i]
+		
+		// Eliminate below
+		for k := i + 1; k < n; k++ {
+			factor := mat[k][i] / mat[i][i]
+			for j := i; j < n; j++ {
+				mat[k][j] -= factor * mat[i][j]
+			}
+		}
+	}
+	
+	return det, nil
+}
+
+// Gaussian elimination solver for Ax = b - O(n³)
+type GaussianResult struct {
+	Solution []float64 `json:"solution,omitempty"`
+	Message  string    `json:"message"`
+	HasSolution bool   `json:"hasSolution"`
+}
+
+func gaussianElimination(a Matrix, b []float64) GaussianResult {
+	if len(a) == 0 || len(b) == 0 {
+		return GaussianResult{Message: "Empty matrix or vector", HasSolution: false}
+	}
+	
+	rows := len(a)
+	cols := len(a[0])
+	
+	if len(b) != rows {
+		return GaussianResult{Message: "Incompatible dimensions", HasSolution: false}
+	}
+	
+	// Create augmented matrix [A|b]
+	aug := make(Matrix, rows)
+	for i := 0; i < rows; i++ {
+		aug[i] = make([]float64, cols+1)
+		for j := 0; j < cols; j++ {
+			aug[i][j] = a[i][j]
+		}
+		aug[i][cols] = b[i]
+	}
+	
+	epsilon := 1e-10
+	
+	// Forward elimination with partial pivoting
+	for i := 0; i < rows && i < cols; i++ {
+		// Find pivot
+		maxRow := i
+		for k := i + 1; k < rows; k++ {
+			if math.Abs(aug[k][i]) > math.Abs(aug[maxRow][i]) {
+				maxRow = k
+			}
+		}
+		
+		// Swap rows
+		if maxRow != i {
+			aug[i], aug[maxRow] = aug[maxRow], aug[i]
+		}
+		
+		// Check for zero pivot
+		if math.Abs(aug[i][i]) < epsilon {
+			// Check if inconsistent
+			if math.Abs(aug[i][cols]) > epsilon {
+				return GaussianResult{Message: "No solution (inconsistent system)", HasSolution: false}
+			}
+			continue
+		}
+		
+		// Eliminate below
+		for k := i + 1; k < rows; k++ {
+			factor := aug[k][i] / aug[i][i]
+			for j := i; j <= cols; j++ {
+				aug[k][j] -= factor * aug[i][j]
+			}
+		}
+	}
+	
+	// Check for inconsistency
+	for i := 0; i < rows; i++ {
+		allZero := true
+		for j := 0; j < cols; j++ {
+			if math.Abs(aug[i][j]) > epsilon {
+				allZero = false
+				break
+			}
+		}
+		if allZero && math.Abs(aug[i][cols]) > epsilon {
+			return GaussianResult{Message: "No solution (inconsistent system)", HasSolution: false}
+		}
+	}
+	
+	// Check if underdetermined
+	if cols > rows {
+		return GaussianResult{Message: "Infinite solutions (underdetermined system)", HasSolution: false}
+	}
+	
+	// Back substitution for square systems
+	if rows != cols {
+		return GaussianResult{Message: "System is not square", HasSolution: false}
+	}
+	
+	x := make([]float64, cols)
+	for i := cols - 1; i >= 0; i-- {
+		if math.Abs(aug[i][i]) < epsilon {
+			return GaussianResult{Message: "Infinite solutions (singular matrix)", HasSolution: false}
+		}
+		
+		sum := 0.0
+		for j := i + 1; j < cols; j++ {
+			sum += aug[i][j] * x[j]
+		}
+		x[i] = (aug[i][cols] - sum) / aug[i][i]
+	}
+	
+	return GaussianResult{
+		Solution: x,
+		Message: "Unique solution found",
+		HasSolution: true,
+	}
+}
+
 // HTTP Handlers
 
 func handleGCD(w http.ResponseWriter, r *http.Request) {
@@ -798,6 +1031,68 @@ func handleCollatz(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(Response{Result: result})
 }
 
+func handleMatrixRank(w http.ResponseWriter, r *http.Request) {
+	enableCORS(&w)
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var data struct {
+		Matrix Matrix `json:"matrix"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+		json.NewEncoder(w).Encode(Response{Error: "Invalid input"})
+		return
+	}
+
+	result := matrixRank(data.Matrix)
+	json.NewEncoder(w).Encode(Response{Result: result})
+}
+
+func handleMatrixDeterminant(w http.ResponseWriter, r *http.Request) {
+	enableCORS(&w)
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var data struct {
+		Matrix Matrix `json:"matrix"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+		json.NewEncoder(w).Encode(Response{Error: "Invalid input"})
+		return
+	}
+
+	result, err := matrixDeterminant(data.Matrix)
+	if err != nil {
+		json.NewEncoder(w).Encode(Response{Error: err.Error()})
+		return
+	}
+	json.NewEncoder(w).Encode(Response{Result: result})
+}
+
+func handleGaussianElimination(w http.ResponseWriter, r *http.Request) {
+	enableCORS(&w)
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var data struct {
+		Matrix Matrix    `json:"matrix"`
+		Vector []float64 `json:"vector"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+		json.NewEncoder(w).Encode(Response{Error: "Invalid input"})
+		return
+	}
+
+	result := gaussianElimination(data.Matrix, data.Vector)
+	json.NewEncoder(w).Encode(Response{Result: result})
+}
+
 func main() {
 	// Existing endpoints
 	http.HandleFunc("/gcd", handleGCD)
@@ -823,6 +1118,11 @@ func main() {
 	http.HandleFunc("/quadratic-solver", handleQuadraticSolver)
 	http.HandleFunc("/discriminant", handleDiscriminant)
 	http.HandleFunc("/collatz", handleCollatz)
+	
+	// Matrix endpoints
+	http.HandleFunc("/matrix-rank", handleMatrixRank)
+	http.HandleFunc("/matrix-determinant", handleMatrixDeterminant)
+	http.HandleFunc("/gaussian-elimination", handleGaussianElimination)
 
 	// OPTIONS handler for all routes
 	http.HandleFunc("/", handleOptions)
