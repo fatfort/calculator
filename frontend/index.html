@@ -4,6 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mathematical Tools - Abaj.ai</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/icons/icon.svg">
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/icons/android-chrome-192x192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="/icons/android-chrome-512x512.png">
+    <link rel="mask-icon" href="/icons/safari-pinned-tab.svg" color="#2563eb">
+    
     <style>
         :root {
             --primary-color: #2563eb;
@@ -11,6 +21,8 @@
             --background-color: #f8fafc;
             --text-color: #1e293b;
             --border-color: #e2e8f0;
+            --success-color: #059669;
+            --error-color: #dc2626;
         }
 
         * {
@@ -27,7 +39,7 @@
         }
 
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
             padding: 2rem;
         }
@@ -37,32 +49,47 @@
             margin-bottom: 3rem;
         }
 
+        header img {
+            width: 64px;
+            height: 64px;
+            margin-bottom: 1rem;
+        }
+
         h1 {
             color: var(--primary-color);
-            margin-bottom: 1rem;
+            margin-bottom: 0.5rem;
+            font-size: 2.5rem;
+        }
+
+        header p {
+            color: #64748b;
+            font-size: 1.1rem;
         }
 
         .tools-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 2rem;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 1.5rem;
         }
 
         .tool-card {
             background: white;
-            border-radius: 8px;
+            border-radius: 12px;
             padding: 1.5rem;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            transition: transform 0.2s;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease;
+            border: 1px solid var(--border-color);
         }
 
         .tool-card:hover {
             transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
         }
 
         .tool-card h2 {
             color: var(--primary-color);
             margin-bottom: 1rem;
+            font-size: 1.25rem;
         }
 
         .input-group {
@@ -73,61 +100,124 @@
             display: block;
             margin-bottom: 0.5rem;
             font-weight: 500;
+            font-size: 0.9rem;
+            color: #475569;
         }
 
-        input {
+        input, select {
             width: 100%;
-            padding: 0.5rem;
+            padding: 0.6rem;
             border: 1px solid var(--border-color);
-            border-radius: 4px;
+            border-radius: 6px;
             font-size: 1rem;
+            transition: border-color 0.2s;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--primary-color);
         }
 
         button {
             background-color: var(--primary-color);
             color: white;
             border: none;
-            padding: 0.5rem 1rem;
-            border-radius: 4px;
+            padding: 0.6rem 1.2rem;
+            border-radius: 6px;
             cursor: pointer;
             font-size: 1rem;
+            font-weight: 500;
             transition: background-color 0.2s;
+            width: 100%;
         }
 
         button:hover {
             background-color: var(--secondary-color);
         }
 
+        button:active {
+            transform: scale(0.98);
+        }
+
         .result {
             margin-top: 1rem;
             padding: 1rem;
-            background-color: var(--background-color);
-            border-radius: 4px;
+            background-color: #f0f9ff;
+            border-radius: 6px;
             display: none;
+            border-left: 3px solid var(--success-color);
+            word-wrap: break-word;
         }
 
         .result.show {
             display: block;
         }
 
+        .result strong {
+            color: var(--primary-color);
+        }
+
         .error {
-            color: #dc2626;
+            color: var(--error-color);
             margin-top: 0.5rem;
+            padding: 0.5rem;
+            background-color: #fef2f2;
+            border-radius: 6px;
             display: none;
+            border-left: 3px solid var(--error-color);
         }
 
         .error.show {
             display: block;
+        }
+
+        .section-title {
+            color: var(--primary-color);
+            font-size: 1.8rem;
+            margin: 2.5rem 0 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .result-table {
+            width: 100%;
+            margin-top: 0.5rem;
+        }
+
+        .result-table td {
+            padding: 0.3rem 0;
+        }
+
+        .result-table td:first-child {
+            font-weight: 500;
+            color: #64748b;
+            width: 40%;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+
+            .tools-grid {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
+            <img src="/icons/icon.svg" alt="Tools Icon">
             <h1>Mathematical Tools</h1>
-            <p>A collection of useful mathematical calculators</p>
+            <p>A comprehensive collection of mathematical calculators and converters</p>
         </header>
 
+        <h2 class="section-title">🔢 Number Theory</h2>
         <div class="tools-grid">
             <!-- GCD Calculator -->
             <div class="tool-card">
@@ -172,6 +262,265 @@
                 <div id="prime-result" class="result"></div>
                 <div id="prime-error" class="error"></div>
             </div>
+
+            <!-- Prime Factorization -->
+            <div class="tool-card">
+                <h2>Prime Factorization</h2>
+                <div class="input-group">
+                    <label for="factor-n">Number:</label>
+                    <input type="number" id="factor-n" placeholder="Enter a number">
+                </div>
+                <button onclick="primeFactorization()">Factorize</button>
+                <div id="factor-result" class="result"></div>
+                <div id="factor-error" class="error"></div>
+            </div>
+
+            <!-- Divisor Counter -->
+            <div class="tool-card">
+                <h2>Divisor Counter</h2>
+                <div class="input-group">
+                    <label for="divisor-n">Number:</label>
+                    <input type="number" id="divisor-n" placeholder="Enter a number">
+                </div>
+                <button onclick="countDivisors()">Count Divisors</button>
+                <div id="divisor-result" class="result"></div>
+                <div id="divisor-error" class="error"></div>
+            </div>
+
+            <!-- Perfect Number Checker -->
+            <div class="tool-card">
+                <h2>Perfect Number Checker</h2>
+                <div class="input-group">
+                    <label for="perfect-n">Number:</label>
+                    <input type="number" id="perfect-n" placeholder="Enter a number">
+                </div>
+                <button onclick="checkPerfect()">Check if Perfect</button>
+                <div id="perfect-result" class="result"></div>
+                <div id="perfect-error" class="error"></div>
+            </div>
+        </div>
+
+        <h2 class="section-title">📊 Sequences & Combinatorics</h2>
+        <div class="tools-grid">
+            <!-- Fibonacci Calculator -->
+            <div class="tool-card">
+                <h2>Fibonacci Calculator</h2>
+                <div class="input-group">
+                    <label for="fib-n">Position (n):</label>
+                    <input type="number" id="fib-n" placeholder="Enter position" min="0">
+                </div>
+                <button onclick="calculateFibonacci()">Calculate Fibonacci</button>
+                <div id="fib-result" class="result"></div>
+                <div id="fib-error" class="error"></div>
+            </div>
+
+            <!-- Factorial Calculator -->
+            <div class="tool-card">
+                <h2>Factorial Calculator</h2>
+                <div class="input-group">
+                    <label for="fact-n">Number:</label>
+                    <input type="number" id="fact-n" placeholder="Enter a number" min="0">
+                </div>
+                <button onclick="calculateFactorial()">Calculate Factorial</button>
+                <div id="fact-result" class="result"></div>
+                <div id="fact-error" class="error"></div>
+            </div>
+
+            <!-- Combinations (n choose r) -->
+            <div class="tool-card">
+                <h2>Combinations (nCr)</h2>
+                <div class="input-group">
+                    <label for="comb-n">n (total items):</label>
+                    <input type="number" id="comb-n" placeholder="Enter n" min="0">
+                </div>
+                <div class="input-group">
+                    <label for="comb-r">r (items to choose):</label>
+                    <input type="number" id="comb-r" placeholder="Enter r" min="0">
+                </div>
+                <button onclick="calculateCombinations()">Calculate nCr</button>
+                <div id="comb-result" class="result"></div>
+                <div id="comb-error" class="error"></div>
+            </div>
+
+            <!-- Permutations (n permute r) -->
+            <div class="tool-card">
+                <h2>Permutations (nPr)</h2>
+                <div class="input-group">
+                    <label for="perm-n">n (total items):</label>
+                    <input type="number" id="perm-n" placeholder="Enter n" min="0">
+                </div>
+                <div class="input-group">
+                    <label for="perm-r">r (items to arrange):</label>
+                    <input type="number" id="perm-r" placeholder="Enter r" min="0">
+                </div>
+                <button onclick="calculatePermutations()">Calculate nPr</button>
+                <div id="perm-result" class="result"></div>
+                <div id="perm-error" class="error"></div>
+            </div>
+
+            <!-- Collatz Sequence Length -->
+            <div class="tool-card">
+                <h2>Collatz Sequence Length</h2>
+                <div class="input-group">
+                    <label for="collatz-n">Starting Number:</label>
+                    <input type="number" id="collatz-n" placeholder="Enter a positive number" min="1">
+                </div>
+                <button onclick="calculateCollatz()">Calculate Length</button>
+                <div id="collatz-result" class="result"></div>
+                <div id="collatz-error" class="error"></div>
+            </div>
+        </div>
+
+        <h2 class="section-title">📈 Statistics</h2>
+        <div class="tools-grid">
+            <!-- Z-Score to Percentile -->
+            <div class="tool-card">
+                <h2>Z-Score to Percentile</h2>
+                <div class="input-group">
+                    <label for="zscore-z">Z-Score:</label>
+                    <input type="number" id="zscore-z" placeholder="Enter z-score" step="0.01">
+                </div>
+                <button onclick="zScoreToPercentile()">Convert to Percentile</button>
+                <div id="zscore-result" class="result"></div>
+                <div id="zscore-error" class="error"></div>
+            </div>
+
+            <!-- Percentile to Z-Score -->
+            <div class="tool-card">
+                <h2>Percentile to Z-Score</h2>
+                <div class="input-group">
+                    <label for="percentile-p">Percentile (0-100):</label>
+                    <input type="number" id="percentile-p" placeholder="Enter percentile" step="0.01" min="0" max="100">
+                </div>
+                <button onclick="percentileToZScore()">Convert to Z-Score</button>
+                <div id="percentile-result" class="result"></div>
+                <div id="percentile-error" class="error"></div>
+            </div>
+        </div>
+
+        <h2 class="section-title">🔄 Base Converters</h2>
+        <div class="tools-grid">
+            <!-- Arbitrary Base Converter -->
+            <div class="tool-card">
+                <h2>Base Converter</h2>
+                <div class="input-group">
+                    <label for="base-value">Value:</label>
+                    <input type="text" id="base-value" placeholder="Enter value">
+                </div>
+                <div class="input-group">
+                    <label for="base-from">From Base (2-36):</label>
+                    <input type="number" id="base-from" placeholder="Enter source base" min="2" max="36" value="10">
+                </div>
+                <div class="input-group">
+                    <label for="base-to">To Base (2-36):</label>
+                    <input type="number" id="base-to" placeholder="Enter target base" min="2" max="36" value="2">
+                </div>
+                <button onclick="convertBase()">Convert Base</button>
+                <div id="base-result" class="result"></div>
+                <div id="base-error" class="error"></div>
+            </div>
+
+            <!-- Binary/Hex/Octal Converter -->
+            <div class="tool-card">
+                <h2>Binary/Hex/Octal Converter</h2>
+                <div class="input-group">
+                    <label for="bho-value">Value:</label>
+                    <input type="text" id="bho-value" placeholder="Enter value">
+                </div>
+                <div class="input-group">
+                    <label for="bho-type">Input Type:</label>
+                    <select id="bho-type">
+                        <option value="bin">Binary</option>
+                        <option value="oct">Octal</option>
+                        <option value="hex">Hexadecimal</option>
+                    </select>
+                </div>
+                <button onclick="convertBinHexOct()">Convert All</button>
+                <div id="bho-result" class="result"></div>
+                <div id="bho-error" class="error"></div>
+            </div>
+        </div>
+
+        <h2 class="section-title">🌡️ Temperature Converters</h2>
+        <div class="tools-grid">
+            <!-- Fahrenheit to Celsius -->
+            <div class="tool-card">
+                <h2>Fahrenheit ↔ Celsius</h2>
+                <div class="input-group">
+                    <label for="f-temp">Fahrenheit:</label>
+                    <input type="number" id="f-temp" placeholder="Enter temperature" step="0.01">
+                </div>
+                <button onclick="fahrenheitToCelsius()">Convert to Celsius</button>
+                <div class="input-group" style="margin-top: 1rem;">
+                    <label for="c-temp">Celsius:</label>
+                    <input type="number" id="c-temp" placeholder="Enter temperature" step="0.01">
+                </div>
+                <button onclick="celsiusToFahrenheit()">Convert to Fahrenheit</button>
+                <div id="temp-fc-result" class="result"></div>
+                <div id="temp-fc-error" class="error"></div>
+            </div>
+
+            <!-- Celsius to Kelvin -->
+            <div class="tool-card">
+                <h2>Celsius ↔ Kelvin</h2>
+                <div class="input-group">
+                    <label for="c-temp2">Celsius:</label>
+                    <input type="number" id="c-temp2" placeholder="Enter temperature" step="0.01">
+                </div>
+                <button onclick="celsiusToKelvin()">Convert to Kelvin</button>
+                <div class="input-group" style="margin-top: 1rem;">
+                    <label for="k-temp">Kelvin:</label>
+                    <input type="number" id="k-temp" placeholder="Enter temperature" step="0.01">
+                </div>
+                <button onclick="kelvinToCelsius()">Convert to Celsius</button>
+                <div id="temp-ck-result" class="result"></div>
+                <div id="temp-ck-error" class="error"></div>
+            </div>
+        </div>
+
+        <h2 class="section-title">📐 Algebra</h2>
+        <div class="tools-grid">
+            <!-- Quadratic Solver -->
+            <div class="tool-card">
+                <h2>Quadratic Solver</h2>
+                <p style="font-size: 0.9rem; color: #64748b; margin-bottom: 1rem;">Solves ax² + bx + c = 0</p>
+                <div class="input-group">
+                    <label for="quad-a">Coefficient a:</label>
+                    <input type="number" id="quad-a" placeholder="Enter a" step="0.01">
+                </div>
+                <div class="input-group">
+                    <label for="quad-b">Coefficient b:</label>
+                    <input type="number" id="quad-b" placeholder="Enter b" step="0.01">
+                </div>
+                <div class="input-group">
+                    <label for="quad-c">Coefficient c:</label>
+                    <input type="number" id="quad-c" placeholder="Enter c" step="0.01">
+                </div>
+                <button onclick="solveQuadratic()">Solve Equation</button>
+                <div id="quad-result" class="result"></div>
+                <div id="quad-error" class="error"></div>
+            </div>
+
+            <!-- Discriminant Calculator -->
+            <div class="tool-card">
+                <h2>Discriminant Calculator</h2>
+                <p style="font-size: 0.9rem; color: #64748b; margin-bottom: 1rem;">Calculates b² - 4ac</p>
+                <div class="input-group">
+                    <label for="disc-a">Coefficient a:</label>
+                    <input type="number" id="disc-a" placeholder="Enter a" step="0.01">
+                </div>
+                <div class="input-group">
+                    <label for="disc-b">Coefficient b:</label>
+                    <input type="number" id="disc-b" placeholder="Enter b" step="0.01">
+                </div>
+                <div class="input-group">
+                    <label for="disc-c">Coefficient c:</label>
+                    <input type="number" id="disc-c" placeholder="Enter c" step="0.01">
+                </div>
+                <button onclick="calculateDiscriminant()">Calculate Discriminant</button>
+                <div id="disc-result" class="result"></div>
+                <div id="disc-error" class="error"></div>
+            </div>
         </div>
     </div>
 
@@ -195,14 +544,16 @@
 
         function showResult(elementId, result) {
             const element = document.getElementById(elementId);
-            element.textContent = `Result: ${result}`;
+            element.innerHTML = result;
             element.classList.add('show');
+            hideError(elementId.replace('-result', '-error'));
         }
 
         function showError(elementId, message) {
             const element = document.getElementById(elementId);
             element.textContent = message;
             element.classList.add('show');
+            hideResult(elementId.replace('-error', '-result'));
         }
 
         function hideResult(elementId) {
@@ -215,19 +566,17 @@
             element.classList.remove('show');
         }
 
+        // Existing calculators
         async function calculateGCD() {
             const a = parseInt(document.getElementById('gcd-a').value);
             const b = parseInt(document.getElementById('gcd-b').value);
             
-            hideResult('gcd-result');
-            hideError('gcd-error');
-
             try {
                 const response = await makeRequest('/gcd', { a, b });
                 if (response.error) {
                     showError('gcd-error', response.error);
                 } else {
-                    showResult('gcd-result', response.result);
+                    showResult('gcd-result', `<strong>GCD:</strong> ${response.result}`);
                 }
             } catch (error) {
                 showError('gcd-error', error.message);
@@ -238,15 +587,12 @@
             const a = parseInt(document.getElementById('lcm-a').value);
             const b = parseInt(document.getElementById('lcm-b').value);
             
-            hideResult('lcm-result');
-            hideError('lcm-error');
-
             try {
                 const response = await makeRequest('/lcm', { a, b });
                 if (response.error) {
                     showError('lcm-error', response.error);
                 } else {
-                    showResult('lcm-result', response.result);
+                    showResult('lcm-result', `<strong>LCM:</strong> ${response.result}`);
                 }
             } catch (error) {
                 showError('lcm-error', error.message);
@@ -256,20 +602,335 @@
         async function checkPrime() {
             const n = parseInt(document.getElementById('prime-n').value);
             
-            hideResult('prime-result');
-            hideError('prime-error');
-
             try {
                 const response = await makeRequest('/prime', { n });
                 if (response.error) {
                     showError('prime-error', response.error);
                 } else {
-                    showResult('prime-result', response.result ? 'Prime' : 'Not Prime');
+                    showResult('prime-result', `<strong>Result:</strong> ${response.result ? '✓ Prime' : '✗ Not Prime'}`);
                 }
             } catch (error) {
                 showError('prime-error', error.message);
             }
         }
+
+        // New calculators
+        async function primeFactorization() {
+            const n = parseInt(document.getElementById('factor-n').value);
+            
+            try {
+                const response = await makeRequest('/prime-factorization', { n });
+                if (response.error) {
+                    showError('factor-error', response.error);
+                } else {
+                    const factors = response.result;
+                    if (Object.keys(factors).length === 0) {
+                        showResult('factor-result', '<strong>Result:</strong> No prime factors (n < 2)');
+                    } else {
+                        let resultText = '<strong>Prime Factors:</strong><br>';
+                        for (const [prime, count] of Object.entries(factors)) {
+                            resultText += `${prime}${count > 1 ? '<sup>' + count + '</sup>' : ''} `;
+                        }
+                        showResult('factor-result', resultText);
+                    }
+                }
+            } catch (error) {
+                showError('factor-error', error.message);
+            }
+        }
+
+        async function countDivisors() {
+            const n = parseInt(document.getElementById('divisor-n').value);
+            
+            try {
+                const response = await makeRequest('/divisor-count', { n });
+                if (response.error) {
+                    showError('divisor-error', response.error);
+                } else {
+                    showResult('divisor-result', `<strong>Number of Divisors:</strong> ${response.result}`);
+                }
+            } catch (error) {
+                showError('divisor-error', error.message);
+            }
+        }
+
+        async function checkPerfect() {
+            const n = parseInt(document.getElementById('perfect-n').value);
+            
+            try {
+                const response = await makeRequest('/perfect-number', { n });
+                if (response.error) {
+                    showError('perfect-error', response.error);
+                } else {
+                    showResult('perfect-result', `<strong>Result:</strong> ${response.result ? '✓ Perfect Number' : '✗ Not Perfect'}`);
+                }
+            } catch (error) {
+                showError('perfect-error', error.message);
+            }
+        }
+
+        async function calculateFibonacci() {
+            const n = parseInt(document.getElementById('fib-n').value);
+            
+            try {
+                const response = await makeRequest('/fibonacci', { n });
+                if (response.error) {
+                    showError('fib-error', response.error);
+                } else {
+                    showResult('fib-result', `<strong>F(${n}):</strong> ${response.result}`);
+                }
+            } catch (error) {
+                showError('fib-error', error.message);
+            }
+        }
+
+        async function calculateFactorial() {
+            const n = parseInt(document.getElementById('fact-n').value);
+            
+            try {
+                const response = await makeRequest('/factorial', { n });
+                if (response.error) {
+                    showError('fact-error', response.error);
+                } else {
+                    showResult('fact-result', `<strong>${n}!:</strong> ${response.result}`);
+                }
+            } catch (error) {
+                showError('fact-error', error.message);
+            }
+        }
+
+        async function calculateCombinations() {
+            const n = parseInt(document.getElementById('comb-n').value);
+            const r = parseInt(document.getElementById('comb-r').value);
+            
+            try {
+                const response = await makeRequest('/combinations', { n, r });
+                if (response.error) {
+                    showError('comb-error', response.error);
+                } else {
+                    showResult('comb-result', `<strong>C(${n}, ${r}):</strong> ${response.result}`);
+                }
+            } catch (error) {
+                showError('comb-error', error.message);
+            }
+        }
+
+        async function calculatePermutations() {
+            const n = parseInt(document.getElementById('perm-n').value);
+            const r = parseInt(document.getElementById('perm-r').value);
+            
+            try {
+                const response = await makeRequest('/permutations', { n, r });
+                if (response.error) {
+                    showError('perm-error', response.error);
+                } else {
+                    showResult('perm-result', `<strong>P(${n}, ${r}):</strong> ${response.result}`);
+                }
+            } catch (error) {
+                showError('perm-error', error.message);
+            }
+        }
+
+        async function zScoreToPercentile() {
+            const z = parseFloat(document.getElementById('zscore-z').value);
+            
+            try {
+                const response = await makeRequest('/zscore-to-percentile', { z });
+                if (response.error) {
+                    showError('zscore-error', response.error);
+                } else {
+                    showResult('zscore-result', `<strong>Percentile:</strong> ${response.result.toFixed(4)}%`);
+                }
+            } catch (error) {
+                showError('zscore-error', error.message);
+            }
+        }
+
+        async function percentileToZScore() {
+            const p = parseFloat(document.getElementById('percentile-p').value);
+            
+            try {
+                const response = await makeRequest('/percentile-to-zscore', { p });
+                if (response.error) {
+                    showError('percentile-error', response.error);
+                } else {
+                    showResult('percentile-result', `<strong>Z-Score:</strong> ${response.result.toFixed(6)}`);
+                }
+            } catch (error) {
+                showError('percentile-error', error.message);
+            }
+        }
+
+        async function convertBase() {
+            const value = document.getElementById('base-value').value.trim();
+            const fromBase = parseInt(document.getElementById('base-from').value);
+            const toBase = parseInt(document.getElementById('base-to').value);
+            
+            try {
+                const response = await makeRequest('/base-converter', { value, fromBase, toBase });
+                if (response.error) {
+                    showError('base-error', response.error);
+                } else {
+                    showResult('base-result', `<strong>Result (base ${toBase}):</strong> ${response.result}`);
+                }
+            } catch (error) {
+                showError('base-error', error.message);
+            }
+        }
+
+        async function convertBinHexOct() {
+            const value = document.getElementById('bho-value').value.trim();
+            const type = document.getElementById('bho-type').value;
+            
+            try {
+                const response = await makeRequest('/bin-hex-oct', { value, type });
+                if (response.error) {
+                    showError('bho-error', response.error);
+                } else {
+                    const r = response.result;
+                    showResult('bho-result', `
+                        <table class="result-table">
+                            <tr><td>Decimal:</td><td>${r.decimal}</td></tr>
+                            <tr><td>Binary:</td><td>${r.binary}</td></tr>
+                            <tr><td>Octal:</td><td>${r.octal}</td></tr>
+                            <tr><td>Hexadecimal:</td><td>${r.hex}</td></tr>
+                        </table>
+                    `);
+                }
+            } catch (error) {
+                showError('bho-error', error.message);
+            }
+        }
+
+        async function fahrenheitToCelsius() {
+            const f = parseFloat(document.getElementById('f-temp').value);
+            
+            try {
+                const response = await makeRequest('/fahrenheit-to-celsius', { f });
+                if (response.error) {
+                    showError('temp-fc-error', response.error);
+                } else {
+                    showResult('temp-fc-result', `<strong>${f}°F =</strong> ${response.result.toFixed(2)}°C`);
+                }
+            } catch (error) {
+                showError('temp-fc-error', error.message);
+            }
+        }
+
+        async function celsiusToFahrenheit() {
+            const c = parseFloat(document.getElementById('c-temp').value);
+            
+            try {
+                const response = await makeRequest('/celsius-to-fahrenheit', { c });
+                if (response.error) {
+                    showError('temp-fc-error', response.error);
+                } else {
+                    showResult('temp-fc-result', `<strong>${c}°C =</strong> ${response.result.toFixed(2)}°F`);
+                }
+            } catch (error) {
+                showError('temp-fc-error', error.message);
+            }
+        }
+
+        async function celsiusToKelvin() {
+            const c = parseFloat(document.getElementById('c-temp2').value);
+            
+            try {
+                const response = await makeRequest('/celsius-to-kelvin', { c });
+                if (response.error) {
+                    showError('temp-ck-error', response.error);
+                } else {
+                    showResult('temp-ck-result', `<strong>${c}°C =</strong> ${response.result.toFixed(2)}K`);
+                }
+            } catch (error) {
+                showError('temp-ck-error', error.message);
+            }
+        }
+
+        async function kelvinToCelsius() {
+            const k = parseFloat(document.getElementById('k-temp').value);
+            
+            try {
+                const response = await makeRequest('/kelvin-to-celsius', { k });
+                if (response.error) {
+                    showError('temp-ck-error', response.error);
+                } else {
+                    showResult('temp-ck-result', `<strong>${k}K =</strong> ${response.result.toFixed(2)}°C`);
+                }
+            } catch (error) {
+                showError('temp-ck-error', error.message);
+            }
+        }
+
+        async function solveQuadratic() {
+            const a = parseFloat(document.getElementById('quad-a').value);
+            const b = parseFloat(document.getElementById('quad-b').value);
+            const c = parseFloat(document.getElementById('quad-c').value);
+            
+            try {
+                const response = await makeRequest('/quadratic-solver', { a, b, c });
+                if (response.error) {
+                    showError('quad-error', response.error);
+                } else {
+                    const r = response.result;
+                    let resultText = `<strong>Discriminant:</strong> ${r.discriminant.toFixed(6)}<br>`;
+                    
+                    if (r.realRoots && r.realRoots.length > 0) {
+                        resultText += '<strong>Real Roots:</strong><br>';
+                        r.realRoots.forEach((root, i) => {
+                            resultText += `x${i + 1} = ${root.toFixed(6)}<br>`;
+                        });
+                    } else if (r.complexRoots && r.complexRoots.length > 0) {
+                        resultText += '<strong>Complex Roots:</strong><br>';
+                        r.complexRoots.forEach((root, i) => {
+                            resultText += `x${i + 1} = ${root}<br>`;
+                        });
+                    }
+                    
+                    showResult('quad-result', resultText);
+                }
+            } catch (error) {
+                showError('quad-error', error.message);
+            }
+        }
+
+        async function calculateDiscriminant() {
+            const a = parseFloat(document.getElementById('disc-a').value);
+            const b = parseFloat(document.getElementById('disc-b').value);
+            const c = parseFloat(document.getElementById('disc-c').value);
+            
+            try {
+                const response = await makeRequest('/discriminant', { a, b, c });
+                if (response.error) {
+                    showError('disc-error', response.error);
+                } else {
+                    const disc = response.result;
+                    let nature = '';
+                    if (disc > 0) nature = ' (Two distinct real roots)';
+                    else if (disc === 0) nature = ' (One repeated real root)';
+                    else nature = ' (Two complex roots)';
+                    
+                    showResult('disc-result', `<strong>Discriminant:</strong> ${disc.toFixed(6)}${nature}`);
+                }
+            } catch (error) {
+                showError('disc-error', error.message);
+            }
+        }
+
+        async function calculateCollatz() {
+            const n = parseInt(document.getElementById('collatz-n').value);
+            
+            try {
+                const response = await makeRequest('/collatz', { n });
+                if (response.error) {
+                    showError('collatz-error', response.error);
+                } else {
+                    showResult('collatz-result', `<strong>Sequence Length:</strong> ${response.result} steps`);
+                }
+            } catch (error) {
+                showError('collatz-error', error.message);
+            }
+        }
     </script>
 </body>
-</html> 
+</html>
