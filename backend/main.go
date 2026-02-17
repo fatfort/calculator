@@ -588,6 +588,46 @@ func gaussianElimination(a Matrix, b []float64) GaussianResult {
 	}
 }
 
+// Data size conversion - O(1)
+type DataSizeResult struct {
+	Bits  float64 `json:"bits"`
+	Bytes float64 `json:"bytes"`
+	KB    float64 `json:"kb"`
+	MB    float64 `json:"mb"`
+	GB    float64 `json:"gb"`
+	TB    float64 `json:"tb"`
+}
+
+func convertDataSize(value float64, unit string) (DataSizeResult, error) {
+	// Convert input to bits first
+	var bits float64
+	switch strings.ToLower(unit) {
+	case "bits":
+		bits = value
+	case "bytes":
+		bits = value * 8
+	case "kb":
+		bits = value * 8 * 1024
+	case "mb":
+		bits = value * 8 * 1024 * 1024
+	case "gb":
+		bits = value * 8 * 1024 * 1024 * 1024
+	case "tb":
+		bits = value * 8 * 1024 * 1024 * 1024 * 1024
+	default:
+		return DataSizeResult{}, fmt.Errorf("invalid unit: %s", unit)
+	}
+
+	return DataSizeResult{
+		Bits:  bits,
+		Bytes: bits / 8,
+		KB:    bits / 8 / 1024,
+		MB:    bits / 8 / 1024 / 1024,
+		GB:    bits / 8 / 1024 / 1024 / 1024,
+		TB:    bits / 8 / 1024 / 1024 / 1024 / 1024,
+	}, nil
+}
+
 // HTTP Handlers
 
 func handleGCD(w http.ResponseWriter, r *http.Request) {
@@ -1093,6 +1133,30 @@ func handleGaussianElimination(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(Response{Result: result})
 }
 
+func handleDataSizeConvert(w http.ResponseWriter, r *http.Request) {
+	enableCORS(&w)
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var data struct {
+		Value float64 `json:"value"`
+		Unit  string  `json:"unit"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+		json.NewEncoder(w).Encode(Response{Error: "Invalid input"})
+		return
+	}
+
+	result, err := convertDataSize(data.Value, data.Unit)
+	if err != nil {
+		json.NewEncoder(w).Encode(Response{Error: err.Error()})
+		return
+	}
+	json.NewEncoder(w).Encode(Response{Result: result})
+}
+
 func main() {
 	// Existing endpoints
 	http.HandleFunc("/gcd", handleGCD)
@@ -1118,7 +1182,8 @@ func main() {
 	http.HandleFunc("/quadratic-solver", handleQuadraticSolver)
 	http.HandleFunc("/discriminant", handleDiscriminant)
 	http.HandleFunc("/collatz", handleCollatz)
-	
+	http.HandleFunc("/data-size-convert", handleDataSizeConvert)
+
 	// Matrix endpoints
 	http.HandleFunc("/matrix-rank", handleMatrixRank)
 	http.HandleFunc("/matrix-determinant", handleMatrixDeterminant)

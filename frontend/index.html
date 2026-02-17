@@ -17,7 +17,7 @@
     <style>
         :root {
             --primary-color: #6700A7;
-            --secondary-color: #1e40af;
+            --secondary-color: #40029C;
             --background-color: #f8fafc;
             --text-color: #1e293b;
             --border-color: #e2e8f0;
@@ -340,8 +340,8 @@
     <div class="container">
         <header>
             <img style="width: 164px; height: 164px;" src="/icons/icon.svg" alt="Tools Icon">
-            <h1>Mathematical Tools</h1>
-            <p>A comprehensive collection of mathematical calculators and converters</p>
+            <h2>Mathematical Tools, Calculators & Converters</h2>
+            <p>Built in Go <a href="https://github.com/abaj8494/tools">↗</a></p>
         </header>
 
         <h2 class="section-title">🔢 Number Theory</h2>
@@ -392,7 +392,7 @@
 
             <!-- Prime Factorization -->
             <div class="tool-card">
-                <h2>Prime Factorization</h2>
+                <h2>Prime Factorisation</h2>
                 <div class="input-group">
                     <label for="factor-n">Number:</label>
                     <input type="number" id="factor-n" placeholder="Enter a number">
@@ -602,6 +602,32 @@
                 <button onclick="kelvinToCelsius()">Convert to Celsius</button>
                 <div id="temp-ck-result" class="result"></div>
                 <div id="temp-ck-error" class="error"></div>
+            </div>
+        </div>
+
+        <h2 class="section-title">💾 Data Size Converter</h2>
+        <div class="tools-grid">
+            <!-- Data Size Converter -->
+            <div class="tool-card">
+                <h2>Bits ↔ Bytes ↔ KB ↔ MB ↔ GB ↔ TB</h2>
+                <div class="input-group">
+                    <label for="data-value">Value:</label>
+                    <input type="number" id="data-value" placeholder="Enter value" step="any">
+                </div>
+                <div class="input-group">
+                    <label for="data-unit">Unit:</label>
+                    <select id="data-unit">
+                        <option value="bits">Bits</option>
+                        <option value="bytes">Bytes</option>
+                        <option value="kb">Kilobytes (KB)</option>
+                        <option value="mb">Megabytes (MB)</option>
+                        <option value="gb" selected>Gigabytes (GB)</option>
+                        <option value="tb">Terabytes (TB)</option>
+                    </select>
+                </div>
+                <button onclick="convertDataSize()">Convert</button>
+                <div id="data-result" class="result"></div>
+                <div id="data-error" class="error"></div>
             </div>
         </div>
 
@@ -1028,6 +1054,42 @@
                 }
             } catch (error) {
                 showError('temp-ck-error', error.message);
+            }
+        }
+
+        async function convertDataSize() {
+            const value = parseFloat(document.getElementById('data-value').value);
+            const unit = document.getElementById('data-unit').value;
+
+            if (isNaN(value)) {
+                showError('data-error', 'Please enter a valid number');
+                return;
+            }
+
+            try {
+                const response = await makeRequest('/data-size-convert', { value, unit });
+                if (response.error) {
+                    showError('data-error', response.error);
+                } else {
+                    const r = response.result;
+                    const fmt = (v) => {
+                        if (v === 0) return '0';
+                        if (v >= 1) return v.toLocaleString(undefined, { maximumFractionDigits: 4 });
+                        return v.toPrecision(6);
+                    };
+                    showResult('data-result', `
+                        <table class="result-table">
+                            <tr><td>Bits:</td><td>${fmt(r.bits)}</td></tr>
+                            <tr><td>Bytes:</td><td>${fmt(r.bytes)}</td></tr>
+                            <tr><td>Kilobytes (KB):</td><td>${fmt(r.kb)}</td></tr>
+                            <tr><td>Megabytes (MB):</td><td>${fmt(r.mb)}</td></tr>
+                            <tr><td>Gigabytes (GB):</td><td>${fmt(r.gb)}</td></tr>
+                            <tr><td>Terabytes (TB):</td><td>${fmt(r.tb)}</td></tr>
+                        </table>
+                    `);
+                }
+            } catch (error) {
+                showError('data-error', error.message);
             }
         }
 
