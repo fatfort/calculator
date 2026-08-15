@@ -1,3 +1,3 @@
-module tools.abaj.ai
+module calc.fatfort.com
 
 go 1.19

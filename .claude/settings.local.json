@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(crontab -l:*)",
+      "Bash(systemctl is-enabled:*)",
+      "Bash(netstat:*)",
+      "Bash(nginx -T:*)",
+      "Bash(cat:*)",
+      "Bash(go build:*)",
+      "Bash(systemctl restart:*)",
+      "Bash(systemctl reload:*)",
+      "Bash(systemctl is-active:*)",
+      "Bash(curl:*)",
+      "Bash(python3 -m json.tool:*)",
+      "Bash(systemctl stop:*)"
+    ]
+  }
+}

@@ -1,0 +1,64 @@
+# calc.fatfort.com — migrated from tools.abaj.ai, Aug 2026.
+#
+# One tiny Go container serving ONLY the JSON calculator API. Unlike agents,
+# this does NOT serve its own frontend: Caddy file_servers the static
+# frontend/ directory directly and reverse_proxies just /api/* here, the same
+# split fatfort.com already uses. Caddy (infra-caddy-1) reaches it by container
+# name over the shared infra_web network, same as storefront, arcade and agents.
+services:
+  calc:
+    build: .
+    image: calc:latest                # explicit tag so rollback-<ts> tags work
+    container_name: calc
+    restart: unless-stopped
+
+    # On the source box this ran as tools-backend.service with User=root, which
+    # it never needed. uid 1000 here is `linuxuser` (tutorsfirst's private
+    # store), so use liminf (1002) — same reasoning as agents' compose.
+    # The process reads no files and writes nothing, so it needs no ownership
+    # of anything at all.
+    user: "1002:1002"
+
+    environment:
+      TZ: Australia/Sydney
+
+    # Loopback publish is for debugging and pre-DNS verification only; Caddy
+    # reaches this container by name. 5000 is arcade, 5001 is agents, 5002 is
+    # reserved for the identity service — this keeps its own odd port.
+    ports:
+      - "127.0.0.1:27439:27439"
+
+    networks:
+      - infra_web
+
+    # A stateless static Go binary with no allocations to speak of; measured RSS
+    # is single-digit MB. 64m matches storefront (also Go) and is a cap, not a
+    # reservation. It matters because this box has ~700 MB actually available
+    # and two mission-critical tenants.
+    mem_limit: 64m
+
+    # This one is load-bearing, not decoration. The API is public and
+    # unauthenticated, and several endpoints are trial-division loops whose cost
+    # grows with the input. main.go now bounds those inputs, but this is the
+    # backstop that holds even if a future endpoint forgets to: calc can never
+    # steal more than half a core from tutorsfirst or arcade.
+    cpus: 0.5
+
+    # Docker never rotates json-file logs by default and this box has one small
+    # root disk.
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:27439/"]
+      interval: 30s
+      timeout: 5s
+      start_period: 5s
+      retries: 3
+
+networks:
+  infra_web:
+    external: true

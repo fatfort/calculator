@@ -1,6 +1,6 @@
-# Mathematical Tools - tools.abaj.ai
+# Mathematical Tools — calc.fatfort.com
 
-A comprehensive collection of 23 mathematical calculators and converters built with Go backend and vanilla JavaScript frontend.
+A comprehensive collection of 24 mathematical calculators and converters built with Go backend and vanilla JavaScript frontend.
 
 ## Features
 
@@ -31,6 +31,9 @@ A comprehensive collection of 23 mathematical calculators and converters built w
 - **Fahrenheit ↔ Celsius** - Temperature conversion
 - **Celsius ↔ Kelvin** - Temperature conversion
 
+### Data Size Converter
+- **Data Size Converter** - Give a value in any of bits, bytes, KB, MB, GB, TB and get all six back
+
 ### Algebra
 - **Quadratic Solver** - Solve ax² + bx + c = 0 (supports complex roots)
 - **Discriminant Calculator** - Calculate b² - 4ac
@@ -44,10 +47,26 @@ A comprehensive collection of 23 mathematical calculators and converters built w
 
 ### Backend (Go)
 - Port: 27439
-- Location: `/var/www/tools.abaj.ai/backend/`
+- Location: `backend/` (deployed at `/home/liminf/calc` on the fatfort box)
 - Optimal algorithms with minimal time and space complexity
 - RESTful API with JSON responses
 - CORS enabled for cross-origin requests
+
+### Input ceilings
+This API is public and unauthenticated and shares a host with two
+mission-critical sites, so `main.go` bounds the inputs that are either
+expensive or wrong past a certain size. See the `max*` constants there:
+
+| Endpoint(s) | Bound | Why |
+|---|---|---|
+| `/factorial` | n ≤ 20 | 21! silently overflows int64 |
+| `/fibonacci` | n ≤ 92 | fib(93) silently overflows int64 |
+| `/prime`, `/prime-factorization`, `/divisor-count`, `/perfect-number` | n ≤ 1e12 | trial division runs to √n; at the int64 ceiling that is ~1.5e9 iterations of pinned CPU per request |
+| `/collatz` | 1 ≤ n ≤ 1e12 | above this `3n+1` overflows into the negative −1 → −2 → −1 cycle and the loop **never terminates** |
+
+Out-of-range input returns HTTP 400. There is also a 256 KB request body cap
+and full `http.Server` timeouts — the original used `http.ListenAndServe` with
+neither, which left it open to slowloris.
 
 ### Frontend
 - Static HTML/CSS/JavaScript
@@ -63,52 +82,38 @@ A comprehensive collection of 23 mathematical calculators and converters built w
 
 ## Deployment
 
-### Building the Backend
+Docker Compose on the fatfort box. The old systemd unit (`tools-backend.service`,
+which ran as `User=root`) and the OpenResty vhost are both retired — the
+container runs as uid 1002 with `mem_limit: 64m` and `cpus: 0.5`.
+
 ```bash
-cd /var/www/tools.abaj.ai/backend
-go build -o backend main.go
+cd /home/liminf/calc
+docker compose build && docker compose up -d
 ```
 
-### Systemd Service
-The backend runs as a systemd service for persistence:
+The `cpus` limit is load-bearing rather than decorative: it is the backstop that
+holds even if a future endpoint forgets its input bound, so this service can
+never steal more than half a core from the other tenants on the box.
 
-```ini
-[Unit]
-Description=Tools.abaj.ai Backend Service
-After=network.target
+### Edge (Caddy)
+The container serves **only** `/api/*`. Caddy `file_server`s `frontend/`
+directly and reverse-proxies the API, the same split `fatfort.com` uses:
 
-[Service]
-Type=simple
-User=root
-WorkingDirectory=/var/www/tools.abaj.ai/backend
-ExecStart=/var/www/tools.abaj.ai/backend/backend
-Restart=always
-RestartSec=3
-StandardOutput=journal
-StandardError=journal
-
-[Install]
-WantedBy=multi-user.target
+```
+calc.fatfort.com {
+    handle /api/* {
+        reverse_proxy calc:27439
+    }
+    root * /srv/calc/frontend
+    file_server
+}
 ```
 
-Service location: `/etc/systemd/system/tools-backend.service`
-
-Commands:
-```bash
-systemctl start tools-backend    # Start the service
-systemctl stop tools-backend     # Stop the service
-systemctl restart tools-backend  # Restart the service
-systemctl status tools-backend   # Check status
-systemctl enable tools-backend   # Enable on boot
-```
-
-### Nginx Configuration
-Location: `/etc/nginx/sites-available/tools`
-
-- HTTPS with Let's Encrypt SSL certificates
-- HTTP to HTTPS redirect
-- Frontend served from `/var/www/tools.abaj.ai/frontend`
-- API proxied to backend on port 27439
+Caddy config lives in the shared `/home/limsup/tutorsfirst/infra/Caddyfile`,
+which also serves tutorsfirst.com.au and arcade.express — **edit it in place
+with `cp`/`tee` (never `mv`), validate before reloading, and reload rather than
+restart.** TLS needs no ACME: the pinned Cloudflare Origin cert already covers
+`*.fatfort.com`.
 
 ## Algorithm Complexity
 
@@ -168,6 +173,9 @@ All endpoints accept POST requests with JSON payloads:
 - `/celsius-to-kelvin` - `{"c": float}`
 - `/kelvin-to-celsius` - `{"k": float}`
 
+### Data Size
+- `/data-size-convert` - `{"value": float, "unit": "bits"|"bytes"|"KB"|"MB"|"GB"|"TB"}` — returns all six units at once
+
 ### Algebra
 - `/quadratic-solver` - `{"a": float, "b": float, "c": float}`
 - `/discriminant` - `{"a": float, "b": float, "c": float}`
@@ -182,7 +190,7 @@ All endpoints accept POST requests with JSON payloads:
 ### Requirements
 - Go 1.19 or higher
 - Modern web browser
-- Nginx (for production)
+- Docker + Caddy (for production)
 
 ### Local Development
 ```bash

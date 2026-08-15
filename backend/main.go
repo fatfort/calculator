@@ -8,7 +8,23 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 )
+
+// maxRequestBody caps how much any single request may send. The largest honest
+// payload here is a matrix for gaussian elimination; 256 KB is far more than
+// that and far less than something worth OOMing a shared box over. Without it,
+// json.NewDecoder(r.Body) will read whatever it is given.
+const maxRequestBody = 256 << 10
+
+// limitBody applies maxRequestBody to every route. It wraps the mux rather than
+// each handler so no endpoint can be added later that quietly forgets it.
+func limitBody(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		r.Body = http.MaxBytesReader(w, r.Body, maxRequestBody)
+		next.ServeHTTP(w, r)
+	})
+}
 
 type Response struct {
 	Result interface{} `json:"result"`
@@ -24,6 +40,41 @@ func enableCORS(w *http.ResponseWriter) {
 func handleOptions(w http.ResponseWriter, r *http.Request) {
 	enableCORS(&w)
 	w.WriteHeader(http.StatusOK)
+}
+
+// Input ceilings.
+//
+// This API is public and unauthenticated, and it shares a host with two
+// mission-critical sites. Every bound below marks the point past which an
+// answer is either flatly wrong (silent int64 overflow) or expensive enough to
+// be a denial-of-service lever for anyone with curl. Rejecting is strictly
+// better than returning a wrong number slowly.
+const (
+	// 20! is the largest factorial representable in int64; 21! overflows and
+	// the old code returned the wrapped value as if it were correct.
+	maxFactorialN = 20
+
+	// fib(92) is the largest Fibonacci number representable in int64.
+	maxFibonacciN = 92
+
+	// Trial division runs to sqrt(n). At 1e12 that is ~5e5 iterations, well
+	// under a millisecond. Left at the int64 ceiling it is ~1.5e9 iterations —
+	// seconds of pinned CPU per request, repeatable at will.
+	maxTrialDivisionN = int64(1e12)
+
+	// Below this, 3n+1 cannot overflow int64 and trajectories run ~1e3 steps.
+	// Unbounded, an overflowing n goes negative and falls into the -1 -> -2 -> -1
+	// cycle, which never reaches 1: collatzLength then never returns and burns a
+	// core until the process dies.
+	maxCollatzN = int64(1e12)
+)
+
+// rejectInput writes a 400 with an explanatory message. The handlers below
+// otherwise answer 200 with an `error` field, which is the existing convention
+// for bad input; a true out-of-range request deserves a real status code.
+func rejectInput(w http.ResponseWriter, msg string) {
+	w.WriteHeader(http.StatusBadRequest)
+	json.NewEncoder(w).Encode(Response{Error: msg})
 }
 
 // GCD using Euclidean algorithm - O(log(min(a,b)))
@@ -344,7 +395,13 @@ func collatzLength(n int64) int64 {
 		return 0
 	}
 	length := int64(0)
-	for n != 1 {
+	// Belt and braces alongside the handler's maxCollatzN check. No Collatz
+	// trajectory starting under 1e12 comes close to 10000 steps, so this only
+	// ever fires if a caller reaches this function by some other route with a
+	// value that overflows into the negative -1 -> -2 -> -1 cycle. Returning a
+	// wrong answer beats spinning a core forever.
+	const maxSteps = 10000
+	for n != 1 && length < maxSteps {
 		if n%2 == 0 {
 			n /= 2
 		} else {
@@ -685,6 +742,10 @@ func handlePrimalityCheck(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if number.N > maxTrialDivisionN {
+		rejectInput(w, "n must be at most 1e12; this uses trial division to sqrt(n)")
+		return
+	}
 	result := isPrime(number.N)
 	json.NewEncoder(w).Encode(Response{Result: result})
 }
@@ -704,6 +765,10 @@ func handlePrimeFactorization(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if number.N > maxTrialDivisionN {
+		rejectInput(w, "n must be at most 1e12; this uses trial division to sqrt(n)")
+		return
+	}
 	result := primeFactorization(number.N)
 	json.NewEncoder(w).Encode(Response{Result: result})
 }
@@ -723,6 +788,10 @@ func handleDivisorCount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if number.N > maxTrialDivisionN {
+		rejectInput(w, "n must be at most 1e12; this uses trial division to sqrt(n)")
+		return
+	}
 	result := countDivisors(number.N)
 	json.NewEncoder(w).Encode(Response{Result: result})
 }
@@ -742,6 +811,10 @@ func handlePerfectNumber(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if number.N > maxTrialDivisionN {
+		rejectInput(w, "n must be at most 1e12; this uses trial division to sqrt(n)")
+		return
+	}
 	result := isPerfectNumber(number.N)
 	json.NewEncoder(w).Encode(Response{Result: result})
 }
@@ -761,6 +834,10 @@ func handleFibonacci(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if number.N < 0 || number.N > maxFibonacciN {
+		rejectInput(w, "n must be between 0 and 92; fib(93) overflows a 64-bit integer")
+		return
+	}
 	result := fibonacci(number.N)
 	json.NewEncoder(w).Encode(Response{Result: result})
 }
@@ -780,6 +857,10 @@ func handleFactorial(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if number.N < 0 || number.N > maxFactorialN {
+		rejectInput(w, "n must be between 0 and 20; 21! overflows a 64-bit integer")
+		return
+	}
 	result := factorial(number.N)
 	json.NewEncoder(w).Encode(Response{Result: result})
 }
@@ -1067,6 +1148,10 @@ func handleCollatz(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if number.N < 1 || number.N > maxCollatzN {
+		rejectInput(w, "n must be between 1 and 1e12")
+		return
+	}
 	result := collatzLength(number.N)
 	json.NewEncoder(w).Encode(Response{Result: result})
 }
@@ -1192,6 +1277,19 @@ func main() {
 	// OPTIONS handler for all routes
 	http.HandleFunc("/", handleOptions)
 
+	// ListenAndServe's zero-value server has no timeouts at all, which leaves a
+	// public endpoint open to slowloris: connections that dribble headers hold a
+	// goroutine and an fd indefinitely. Every handler here is pure arithmetic
+	// that returns in microseconds, so these bounds are generous.
+	srv := &http.Server{
+		Addr:              ":27439",
+		Handler:           limitBody(http.DefaultServeMux),
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       10 * time.Second,
+		WriteTimeout:      15 * time.Second,
+		IdleTimeout:       60 * time.Second,
+		MaxHeaderBytes:    1 << 16,
+	}
 	fmt.Println("Server starting on :27439")
-	log.Fatal(http.ListenAndServe(":27439", nil))
+	log.Fatal(srv.ListenAndServe())
 }
