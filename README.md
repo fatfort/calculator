@@ -1,6 +1,43 @@
-# Mathematical Tools — calc.fatfort.com
+# Calc — calc.fatfort.com
 
-A comprehensive collection of 24 mathematical calculators and converters built with Go backend and vanilla JavaScript frontend.
+Twenty-four mathematical calculators and converters. Free, no account, three
+ways to reach them:
+
+| | Where | For |
+|---|---|---|
+| **Web** | <https://calc.fatfort.com> | A browser |
+| **MCP** | `https://calc.fatfort.com/mcp` | Claude and other AI clients — see below |
+| **CLI** | [`cli/`](cli/) | A terminal, with Television / sesh / tmux wiring |
+
+## Use it from Claude
+
+The calculators are exposed as [MCP](https://modelcontextprotocol.io) tools, so
+an AI client can call them directly instead of doing arithmetic in its head.
+Twenty-two tools, each carrying the input bounds in its schema — so a request
+for `factorial(100)` is refused before it is ever sent, with the reason (21!
+overflows a 64-bit integer) rather than a bare rejection.
+
+**Remote — nothing to install:**
+
+```sh
+claude mcp add --transport http calc https://calc.fatfort.com/mcp
+```
+
+Or in a client's config file:
+
+```json
+{ "mcpServers": { "calc": { "url": "https://calc.fatfort.com/mcp" } } }
+```
+
+**Local, over stdio** — if you'd rather run it yourself, see [`mcp/`](mcp/).
+Both transports serve an identical tool list from one definition set.
+
+The endpoint is public and unauthenticated, because the API it wraps is: these
+are pure functions over numbers, holding no data and no credentials.
+
+
+
+Built with a Go backend and a vanilla-JavaScript frontend, no build step.
 
 ## Features
 
