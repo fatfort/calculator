@@ -1,8 +1,10 @@
 # calc.fatfort.com — the calculator API, migrated from tools.abaj.ai (Aug 2026).
 #
-# This container serves ONLY /api/*. The static frontend is bind-mounted into
-# Caddy and served by file_server, the same split fatfort.com already uses —
-# so there is no reason for a Go process to also be a static file server.
+# This container serves BOTH its static frontend and its /api/*, the same shape
+# as agents.fatfort.com. That is deliberate: it means the shared Caddyfile needs
+# only a reverse_proxy line, so adding this host is a graceful `caddy reload`
+# rather than a recreation of the container that also fronts two
+# mission-critical businesses.
 #
 # On the source box this ran as `tools-backend.service` with User=root. It does
 # not need root, a shell, or a package manager, hence the two-stage build down
@@ -19,8 +21,10 @@ RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags='-s -w' -o /out/calc .
 
 # Alpine rather than scratch purely so busybox wget exists for HEALTHCHECK.
 FROM alpine:3.20
-# No passwd entry is needed: the binary reads no files, opens no home directory
-# and writes nothing. compose pins the uid (see docker-compose.yml).
+# The frontend is baked into the image rather than bind-mounted, so the shared
+# Caddy container needs no new volume — and therefore no recreation, which would
+# briefly drop tutorsfirst.com.au and arcade.express along with it.
+COPY frontend /srv/frontend
 COPY --from=build /out/calc /usr/local/bin/calc
 EXPOSE 27439
 # main.go registers "/" as a catch-all OPTIONS handler that answers 200 to any

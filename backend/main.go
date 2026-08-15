@@ -6,6 +6,7 @@ import (
 	"log"
 	"math"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -1277,13 +1278,32 @@ func main() {
 	// OPTIONS handler for all routes
 	http.HandleFunc("/", handleOptions)
 
+	// This container serves its own static UI as well as its own API, exactly
+	// like agents.fatfort.com does — which is what lets the shared Caddyfile get
+	// away with a single reverse_proxy line and no bind mount. That matters:
+	// adding a volume to infra-caddy-1 means RECREATING the container that also
+	// fronts tutorsfirst.com.au and arcade.express, whereas a new site block is
+	// just a graceful `caddy reload`.
+	//
+	// Every handler above registered on DefaultServeMux at its bare path
+	// (/gcd, /lcm, ...), and the frontend calls /api/<endpoint> — the old
+	// OpenResty vhost stripped that prefix. StripPrefix reproduces it here
+	// without touching the 25 registrations.
+	staticDir := os.Getenv("STATIC_DIR")
+	if staticDir == "" {
+		staticDir = "/srv/frontend"
+	}
+	mux := http.NewServeMux()
+	mux.Handle("/api/", http.StripPrefix("/api", http.DefaultServeMux))
+	mux.Handle("/", http.FileServer(http.Dir(staticDir)))
+
 	// ListenAndServe's zero-value server has no timeouts at all, which leaves a
 	// public endpoint open to slowloris: connections that dribble headers hold a
 	// goroutine and an fd indefinitely. Every handler here is pure arithmetic
 	// that returns in microseconds, so these bounds are generous.
 	srv := &http.Server{
 		Addr:              ":27439",
-		Handler:           limitBody(http.DefaultServeMux),
+		Handler:           limitBody(mux),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       10 * time.Second,
 		WriteTimeout:      15 * time.Second,
