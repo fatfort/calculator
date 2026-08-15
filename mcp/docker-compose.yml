@@ -14,9 +14,8 @@ services:
     container_name: calc-mcp
     restart: unless-stopped
 
-    # uid 1000 on this box is `linuxuser` — tutorsfirst's private study-material
-    # store. Running as it would entangle two unrelated services' file
-    # ownership, so run as liminf (1002), matching agents, calc and identity.
+    # uid 1000 on the host belongs to another service. Running as it would entangle two unrelated services' file
+    # ownership, so run as a dedicated unprivileged uid, matching agents, calc and identity.
     user: "1002:1002"
 
     environment:
@@ -37,7 +36,7 @@ services:
 
     # Node with the MCP SDK idles around 60-70 MB RSS; sessions are bounded
     # (max 100, 30-minute idle reaper) so this is a real ceiling, sized for a
-    # box with two mission-critical tenants.
+    # box with other tenants.
     mem_limit: 192m
     cpus: 0.5
 

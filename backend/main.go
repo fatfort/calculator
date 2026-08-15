@@ -45,8 +45,8 @@ func handleOptions(w http.ResponseWriter, r *http.Request) {
 
 // Input ceilings.
 //
-// This API is public and unauthenticated, and it shares a host with two
-// mission-critical sites. Every bound below marks the point past which an
+// This API is public and unauthenticated, and it shares a host with other
+// services. Every bound below marks the point past which an
 // answer is either flatly wrong (silent int64 overflow) or expensive enough to
 // be a denial-of-service lever for anyone with curl. Rejecting is strictly
 // better than returning a wrong number slowly.
@@ -1281,8 +1281,8 @@ func main() {
 	// This container serves its own static UI as well as its own API, exactly
 	// like agents.fatfort.com does — which is what lets the shared Caddyfile get
 	// away with a single reverse_proxy line and no bind mount. That matters:
-	// adding a volume to infra-caddy-1 means RECREATING the container that also
-	// fronts tutorsfirst.com.au and arcade.express, whereas a new site block is
+	// adding a volume to the shared edge proxy means RECREATING the container that also
+	// fronts the other sites it fronts, whereas a new site block is
 	// just a graceful `caddy reload`.
 	//
 	// Every handler above registered on DefaultServeMux at its bare path

@@ -3,7 +3,7 @@
 # One tiny Go container serving ONLY the JSON calculator API. Unlike agents,
 # this does NOT serve its own frontend: Caddy file_servers the static
 # frontend/ directory directly and reverse_proxies just /api/* here, the same
-# split fatfort.com already uses. Caddy (infra-caddy-1) reaches it by container
+# split fatfort.com already uses. The shared edge proxy reaches it by container
 # name over the shared infra_web network, same as storefront, arcade and agents.
 services:
   calc:
@@ -12,9 +12,8 @@ services:
     container_name: calc
     restart: unless-stopped
 
-    # On the source box this ran as tools-backend.service with User=root, which
-    # it never needed. uid 1000 here is `linuxuser` (tutorsfirst's private
-    # store), so use liminf (1002) — same reasoning as agents' compose.
+    # This previously ran as a systemd unit with User=root, which it never needed. uid 1000 here belongs to another service, so use a dedicated
+    # unprivileged uid — same reasoning as the other services here.
     # The process reads no files and writes nothing, so it needs no ownership
     # of anything at all.
     user: "1002:1002"
@@ -33,19 +32,18 @@ services:
 
     # A stateless static Go binary with no allocations to speak of; measured RSS
     # is single-digit MB. 64m matches storefront (also Go) and is a cap, not a
-    # reservation. It matters because this box has ~700 MB actually available
-    # and two mission-critical tenants.
+    # reservation. It matters because the host has limited memory
+    # and other tenants.
     mem_limit: 64m
 
     # This one is load-bearing, not decoration. The API is public and
     # unauthenticated, and several endpoints are trial-division loops whose cost
     # grows with the input. main.go now bounds those inputs, but this is the
     # backstop that holds even if a future endpoint forgets to: calc can never
-    # steal more than half a core from tutorsfirst or arcade.
+    # steal more than half a core from the other tenants.
     cpus: 0.5
 
-    # Docker never rotates json-file logs by default and this box has one small
-    # root disk.
+    # Docker never rotates json-file logs by default and the host has a small root disk.
     logging:
       driver: json-file
       options:

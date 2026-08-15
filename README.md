@@ -82,14 +82,14 @@ Built with a Go backend and a vanilla-JavaScript frontend, no build step.
 
 ### Backend (Go)
 - Port: 27439
-- Location: `backend/` (deployed at `/home/liminf/calc` on the fatfort box)
+- Location: `backend/` (deployed at `/path/to/calculator` )
 - Optimal algorithms with minimal time and space complexity
 - RESTful API with JSON responses
 - CORS enabled for cross-origin requests
 
 ### Input ceilings
-This API is public and unauthenticated and shares a host with two
-mission-critical sites, so `main.go` bounds the inputs that are either
+This API is public and unauthenticated and shares a host with other
+services, so `main.go` bounds the inputs that are either
 expensive or wrong past a certain size. See the `max*` constants there:
 
 | Endpoint(s) | Bound | Why |
@@ -122,7 +122,7 @@ which ran as `User=root`) and the OpenResty vhost are both retired — the
 container runs as uid 1002 with `mem_limit: 64m` and `cpus: 0.5`.
 
 ```bash
-cd /home/liminf/calc
+cd /path/to/calculator
 docker compose build && docker compose up -d
 ```
 
@@ -134,8 +134,8 @@ never steal more than half a core from the other tenants on the box.
 The container serves **both** its static frontend and its `/api/*`, the same
 shape as agents.fatfort.com. That is deliberate: it means the shared Caddyfile
 needs only a `reverse_proxy` line, so adding this host was a graceful reload
-rather than a recreation of the container that also fronts two mission-critical
-sites — adding a bind mount there would have required exactly that.
+rather than a recreation of the shared edge proxy — adding a bind mount there
+would have required exactly that, interrupting every site it fronts.
 
 ```
 calc.fatfort.com {
@@ -157,8 +157,8 @@ because Caddy's **default** list contains `text/*`, which matches
 headers until the first body byte. The MCP transport replies with exactly that
 content type, so a bare `encode` silently stalls the handshake.
 
-Caddy config lives in the shared `/home/limsup/tutorsfirst/infra/Caddyfile`,
-which also serves tutorsfirst.com.au and arcade.express — **edit it in place
+Caddy config lives in the shared `the shared Caddyfile`,
+which also serves the other sites it fronts — **edit it in place
 with `cp`/`tee` (never `mv`), validate before reloading, and reload rather than
 restart.** TLS needs no ACME: the pinned Cloudflare Origin cert already covers
 `*.fatfort.com`.

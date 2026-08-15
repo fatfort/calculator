@@ -28,7 +28,7 @@ Requires Node ≥ 18 and `npm install` run once in this directory. Paste into yo
   "mcpServers": {
     "calc": {
       "command": "node",
-      "args": ["/home/liminf/calc/mcp/src/stdio.js"],
+      "args": ["/path/to/calculator/mcp/src/stdio.js"],
       "env": {
         "CALC_API_BASE": "https://calc.fatfort.com/api"
       }
@@ -42,7 +42,7 @@ Requires Node ≥ 18 and `npm install` run once in this directory. Paste into yo
 Claude Code one-liner:
 
 ```sh
-claude mcp add calc -- node /home/liminf/calc/mcp/src/stdio.js
+claude mcp add calc -- node /path/to/calculator/mcp/src/stdio.js
 ```
 
 ### Remote (Streamable HTTP)
@@ -101,7 +101,7 @@ Caddy wiring (not included here): add `reverse_proxy /mcp* calc-mcp:5004` (or a 
 No network access; the upstream is stubbed. Run inside `node:22-slim` if the host has no Node:
 
 ```sh
-sudo docker run --rm -u 1002:1002 -e HOME=/tmp -v /home/liminf/calc:/app -w /app/mcp node:22-slim npm test
+sudo docker run --rm -u 1002:1002 -e HOME=/tmp -v /path/to/calculator:/app -w /app/mcp node:22-slim npm test
 ```
 
 Covers: every tool's schema validates a representative call; exact upstream endpoint + body field names per Go handler; schema-level bound rejection (client-side, zero network calls); upstream 400 / 200-with-error / network-down / unparseable-body paths; the 256 KB caps; and transport parity — a real stdio child process and a real Streamable HTTP server must expose identical tool lists, plus the HTTP session contract (session header on initialize, 400 no-session, 404 unknown-session, 413 oversize, DELETE termination).
