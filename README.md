@@ -35,8 +35,6 @@ Both transports serve an identical tool list from one definition set.
 The endpoint is public and unauthenticated, because the API it wraps is: these
 are pure functions over numbers, holding no data and no credentials.
 
-
-
 Built with a Go backend and a vanilla-JavaScript frontend, no build step.
 
 ## Features
@@ -133,18 +131,31 @@ holds even if a future endpoint forgets its input bound, so this service can
 never steal more than half a core from the other tenants on the box.
 
 ### Edge (Caddy)
-The container serves **only** `/api/*`. Caddy `file_server`s `frontend/`
-directly and reverse-proxies the API, the same split `fatfort.com` uses:
+The container serves **both** its static frontend and its `/api/*`, the same
+shape as agents.fatfort.com. That is deliberate: it means the shared Caddyfile
+needs only a `reverse_proxy` line, so adding this host was a graceful reload
+rather than a recreation of the container that also fronts two mission-critical
+sites — adding a bind mount there would have required exactly that.
 
 ```
 calc.fatfort.com {
-    handle /api/* {
+    encode zstd gzip {
+        match { ... enumerated types, never a bare text/* ... }
+    }
+    handle /mcp* {
+        reverse_proxy calc-mcp:5004
+    }
+    handle {
         reverse_proxy calc:27439
     }
-    root * /srv/calc/frontend
-    file_server
 }
 ```
+
+The `encode` match list is enumerated rather than a bare `encode zstd gzip`
+because Caddy's **default** list contains `text/*`, which matches
+`text/event-stream` — and caddyserver/caddy#6293 then withholds response
+headers until the first body byte. The MCP transport replies with exactly that
+content type, so a bare `encode` silently stalls the handshake.
 
 Caddy config lives in the shared `/home/limsup/tutorsfirst/infra/Caddyfile`,
 which also serves tutorsfirst.com.au and arcade.express — **edit it in place
