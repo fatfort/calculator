@@ -1,0 +1,65 @@
+# calc-mcp — remote MCP endpoint for the calculator API.
+#
+# Joins the shared infra_web network so it can reach the calc container by
+# name (http://calc:27439/api) without a round trip through Caddy/TLS, and so
+# Caddy can reverse_proxy calc.fatfort.com/mcp -> calc-mcp:5004 with a single
+# site-block line (a graceful reload, no container recreation — same reasoning
+# as the calc compose file).
+#
+# Run from this directory: docker compose up -d --build
+services:
+  calc-mcp:
+    build: .
+    image: calc-mcp:latest
+    container_name: calc-mcp
+    restart: unless-stopped
+
+    # uid 1000 on this box is `linuxuser` — tutorsfirst's private study-material
+    # store. Running as it would entangle two unrelated services' file
+    # ownership, so run as liminf (1002), matching agents, calc and identity.
+    user: "1002:1002"
+
+    environment:
+      TZ: Australia/Sydney
+      MCP_HOST: 0.0.0.0
+      MCP_PORT: "5004"
+      # Talk to the calc container directly over the docker network.
+      CALC_API_BASE: http://calc:27439/api
+
+    # Loopback publish for debugging / pre-DNS verification only; Caddy
+    # reaches this container by name over infra_web. Port plan: 5000 arcade,
+    # 5001 agents, 5002 identity, 5003 draw, 5004 this.
+    ports:
+      - "127.0.0.1:5004:5004"
+
+    networks:
+      - infra_web
+
+    # Node with the MCP SDK idles around 60-70 MB RSS; sessions are bounded
+    # (max 100, 30-minute idle reaper) so this is a real ceiling, sized for a
+    # box with two mission-critical tenants.
+    mem_limit: 192m
+    cpus: 0.5
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:5004/healthz').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      start_period: 5s
+      retries: 3
+
+networks:
+  infra_web:
+    external: true

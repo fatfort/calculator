@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+# calc-run — prompt for an endpoint's arguments, call it, show the result.
+#
+# This is the interactive half of the Television channel: `tv calc` picks the
+# endpoint, this collects the arguments. Kept as its own script so the channel
+# TOML stays a two-line command rather than an unreadable inline shell blob.
+#
+# Usable on its own too:  calc-run quadratic-solver
+set -uo pipefail
+
+here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+export PATH="$here:$PATH"
+
+name="${1:-}"
+[ -n "$name" ] || { echo "usage: calc-run <endpoint>" >&2; exit 2; }
+# Same as `calc describe`: accept a full `calc list` line so the Television
+# action can pass {} straight through without any split placeholder.
+name="${name%%[$'\t' ]*}"
+
+# Ask calc for the field list rather than duplicating the manifest here — one
+# source of truth, so adding an endpoint to calc doesn't silently break this.
+fields=$(calc describe "$name" 2>/dev/null | awk '
+  /^  arguments$/ {grab=1; next}
+  /^  (limits|example)$/ {grab=0}
+  grab && NF {print $1}
+') || true
+
+if [ -z "$fields" ]; then
+  echo "calc-run: unknown endpoint: $name" >&2
+  exit 1
+fi
+
+calc describe "$name"
+echo
+
+# Collect the field names into an array FIRST. Looping with
+# `while read … done <<<"$fields"` would point the loop's stdin at the field
+# list, so the prompt inside would consume field names instead of what the user
+# (or a pipe) is actually typing.
+mapfile -t fieldlist <<<"$fields"
+
+args=()
+for f in "${fieldlist[@]}"; do
+  [ -n "$f" ] || continue
+  # -e gives readline editing; -r stops backslash mangling in JSON matrix args.
+  IFS= read -r -e -p "  $f = " val || { echo >&2; echo "calc-run: aborted" >&2; exit 130; }
+  [ -n "$val" ] || { echo "calc-run: $f is required" >&2; exit 1; }
+  args+=("$val")
+done
+
+echo
+printf '  $ calc %s %s\n\n' "$name" "${args[*]}"
+calc "$name" "${args[@]}"
+status=$?
+
+# Only pause when attached to a terminal, so this stays pipe-friendly.
+if [ -t 0 ]; then
+  echo
+  read -rsn1 -p "  press any key…" _ || true
+  echo
+fi
+exit $status

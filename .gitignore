@@ -1,0 +1,8 @@
+# Node dependencies — mcp/ installs its own; they are lockfile-reproducible.
+node_modules/
+
+# Compiled Go binary (built in the container, not committed).
+backend/backend
+
+# Local editing convention leaves timestamped snapshots beside edited files.
+*.bak.*

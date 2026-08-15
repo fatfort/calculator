@@ -1,0 +1,35 @@
+# sesh session definitions for the FatFort estate.
+#
+# Install: merge into ~/.config/sesh/sesh.toml
+# Use:     sesh connect calc      (or pick from `sesh list | fzf`)
+#
+# sesh's job here is to give each service a named tmux session with the right
+# working directory and environment already set, so "poke the calculators" is
+# one keystroke rather than a cd, an export and a recalled curl.
+
+[[session]]
+name = "calc"
+path = "~/src/calc"
+# `tv calc` if Television is installed, plain fzf if not — the machine you are
+# on shouldn't decide whether the workflow exists.
+startup_command = "command -v tv >/dev/null && tv calc || calc list | fzf --preview 'calc describe {}' --preview-window=right:55%"
+
+[[session]]
+name = "calc-local"
+path = "~/src/calc"
+# Same picker against a container on this machine instead of production —
+# useful when you are changing backend/main.go and want to see it immediately.
+startup_command = "CALC_API=http://127.0.0.1:27439/api tv calc"
+
+# The estate's other services. Fill in paths to match your checkout.
+[[session]]
+name = "fatfort"
+path = "~/src/fatfort"
+
+[[session]]
+name = "draw"
+path = "~/src/draw"
+
+[[session]]
+name = "identity"
+path = "~/src/identity"

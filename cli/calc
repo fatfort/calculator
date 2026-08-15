@@ -1,0 +1,211 @@
+#!/usr/bin/env bash
+# calc — a terminal client for calc.fatfort.com
+#
+# Dependencies are deliberately just bash, curl and jq: this has to run on a
+# stock macOS shell and inside a tmux popup without anyone installing a runtime.
+#
+#   calc gcd 12 18                 -> 6
+#   calc list                      -> one "name<TAB>summary" per line (Television source)
+#   calc describe gcd              -> help for one endpoint (Television preview)
+#   calc raw gcd '{"a":12,"b":18}' -> the unwrapped JSON response
+#
+# CALC_API overrides the base URL — point it at http://127.0.0.1:27439/api to
+# talk to a local container, or at the public host (the default).
+set -uo pipefail
+
+API="${CALC_API:-https://calc.fatfort.com/api}"
+TIMEOUT="${CALC_TIMEOUT:-15}"
+
+# ── endpoint manifest ────────────────────────────────────────────────────────
+# name | field:type,... | summary
+#
+# Field names are NOT guessable and several are counter-intuitive
+# (base-converter takes `value`, not `number`), so they were extracted straight
+# from the json tags in backend/main.go rather than transcribed from the README
+# — which had two of them wrong. Regenerate with:
+#   grep -o 'json:"[a-zA-Z]*"' backend/main.go
+MANIFEST=$(cat <<'EOF'
+gcd|a:int,b:int|Greatest common divisor (Euclidean)
+lcm|a:int,b:int|Least common multiple
+prime|n:int|Is n prime? (n <= 1e12)
+prime-factorization|n:int|Prime factors with multiplicity (n <= 1e12)
+divisor-count|n:int|How many divisors n has (n <= 1e12)
+perfect-number|n:int|Is n a perfect number? (n <= 1e12)
+fibonacci|n:int|The nth Fibonacci number (n <= 92)
+factorial|n:int|n! (n <= 20)
+combinations|n:int,r:int|nCr, binomial coefficient
+permutations|n:int,r:int|nPr
+zscore-to-percentile|z:float|Normal CDF: z-score to percentile
+percentile-to-zscore|p:float|Inverse normal: percentile to z-score
+base-converter|value:string,fromBase:int,toBase:int|Convert between any bases 2-36
+bin-hex-oct|value:string,type:string|Convert from bin, oct or hex
+fahrenheit-to-celsius|f:float|Fahrenheit to Celsius
+celsius-to-fahrenheit|c:float|Celsius to Fahrenheit
+celsius-to-kelvin|c:float|Celsius to Kelvin
+kelvin-to-celsius|k:float|Kelvin to Celsius
+quadratic-solver|a:float,b:float,c:float|Solve ax^2 + bx + c = 0
+discriminant|a:float,b:float,c:float|b^2 - 4ac
+collatz|n:int|Collatz sequence length (1 <= n <= 1e12)
+data-size-convert|value:float,unit:string|Given one unit, return all six
+matrix-rank|matrix:json|Rank of a matrix
+matrix-determinant|matrix:json|Determinant of a square matrix
+gaussian-elimination|matrix:json,vector:json|Solve Ax = b
+EOF
+)
+
+# Why each ceiling exists, so `describe` can explain a rejection rather than
+# just restating it. These mirror the constants in backend/main.go.
+bounds_for() {
+  case "$1" in
+    factorial) echo "n must be 0..20 — 21! overflows a 64-bit integer." ;;
+    fibonacci) echo "n must be 0..92 — fib(93) overflows a 64-bit integer." ;;
+    prime|prime-factorization|divisor-count|perfect-number)
+      echo "n must be <= 1e12 — this trial-divides to sqrt(n), and the API is public." ;;
+    collatz)
+      echo "n must be 1..1e12 — above that 3n+1 overflows into a non-terminating cycle." ;;
+    *) return 1 ;;
+  esac
+}
+
+die() { printf 'calc: %s\n' "$*" >&2; exit 1; }
+
+row_for() { printf '%s\n' "$MANIFEST" | awk -F'|' -v n="$1" '$1==n{print;exit}'; }
+
+usage() {
+  cat >&2 <<EOF
+usage:
+  calc <endpoint> [args...]      call an endpoint with positional args
+  calc list                      list endpoints (name<TAB>summary)
+  calc describe <endpoint>       show arguments and limits
+  calc raw <endpoint> '<json>'   send a raw JSON body
+
+  CALC_API=$API
+
+Try: calc list | cut -f1
+EOF
+  exit 2
+}
+
+cmd_list() { printf '%s\n' "$MANIFEST" | awk -F'|' '{printf "%s\t%s\n", $1, $3}'; }
+
+cmd_describe() {
+  local name="${1:-}" row fields summary
+  [ -n "$name" ] || die "describe needs an endpoint name"
+  # Accept a whole line from `calc list` ("gcd<TAB>Greatest common divisor"),
+  # not just a bare name. Television hands the preview command the entire
+  # selected line, and its {split:...} placeholder needs a tab escaped inside
+  # TOML — ambiguous enough to be a real source of breakage. Tolerating the
+  # full line here means the channel config needs no split syntax at all.
+  name="${name%%[$'\t' ]*}"
+  row=$(row_for "$name") || true
+  [ -n "$row" ] || die "unknown endpoint: $name"
+  fields=$(printf '%s' "$row" | cut -d'|' -f2)
+  summary=$(printf '%s' "$row" | cut -d'|' -f3)
+
+  printf '  %s\n  %s\n\n' "$name" "$summary"
+  printf '  arguments\n'
+  local IFS=,; local f
+  for f in $fields; do
+    printf '    %-12s %s\n' "${f%%:*}" "${f##*:}"
+  done
+  unset IFS
+
+  local b; if b=$(bounds_for "$name"); then printf '\n  limits\n    %s\n' "$b"; fi
+
+  printf '\n  example\n    calc %s' "$name"
+  for f in ${fields//,/ }; do
+    case "${f##*:}" in
+      json)   printf " '[[1,2],[3,4]]'" ;;
+      string) printf ' VALUE' ;;
+      float)  printf ' 1.0' ;;
+      *)      printf ' 12' ;;
+    esac
+  done
+  printf '\n'
+}
+
+# Turn positional args into a JSON body, typing each per the manifest so
+# integers don't arrive quoted (the Go handlers reject a string where they
+# expect a number, with a message that doesn't explain why).
+build_body() {
+  local fields="$1"; shift
+  local -a parts=()
+  local IFS=, f i=0
+  for f in $fields; do
+    local key="${f%%:*}" typ="${f##*:}" val="${1:-}"
+    [ $# -gt 0 ] || die "missing argument: $key (run 'calc describe' for details)"
+    shift
+    case "$typ" in
+      int|float)
+        [[ "$val" =~ ^-?[0-9]+(\.[0-9]+)?([eE]-?[0-9]+)?$ ]] \
+          || die "$key must be a number, got: $val"
+        parts+=("$(printf '"%s":%s' "$key" "$val")") ;;
+      json)
+        printf '%s' "$val" | jq -e . >/dev/null 2>&1 \
+          || die "$key must be valid JSON, got: $val"
+        parts+=("$(printf '"%s":%s' "$key" "$val")") ;;
+      *)
+        parts+=("$(jq -cn --arg k "$key" --arg v "$val" '{($k):$v}' | sed 's/^{//;s/}$//')") ;;
+    esac
+    i=$((i+1))
+  done
+  unset IFS
+  [ $# -eq 0 ] || die "too many arguments (expected $i)"
+  local out; out=$(printf '%s,' "${parts[@]}"); printf '{%s}' "${out%,}"
+}
+
+call() {
+  local name="$1" body="$2" resp http rc errfile
+  errfile=$(mktemp)
+  # -w appends the status on its own line so a 400 is distinguishable from a
+  # 200 carrying an {"error": ...} — the API uses both. curl's own diagnostics
+  # go to a temp file rather than being merged into the body, or a connection
+  # failure arrives glued to a "000" status and reads like garbage.
+  resp=$(curl -sS --max-time "$TIMEOUT" -w $'\n%{http_code}' \
+              -X POST -H 'Content-Type: application/json' \
+              -d "$body" "$API/$name" 2>"$errfile")
+  rc=$?
+  if [ $rc -ne 0 ]; then
+    local msg; msg=$(tr -d '\n' <"$errfile"); rm -f "$errfile"
+    die "cannot reach $API — ${msg:-curl exit $rc}"
+  fi
+  rm -f "$errfile"
+  http="${resp##*$'\n'}"; resp="${resp%$'\n'*}"
+
+  if ! printf '%s' "$resp" | jq -e . >/dev/null 2>&1; then
+    die "HTTP $http, non-JSON response: $resp"
+  fi
+  local err; err=$(printf '%s' "$resp" | jq -r '.error // empty')
+  if [ -n "$err" ]; then
+    printf 'calc: %s\n' "$err" >&2
+    if b=$(bounds_for "$name"); then printf '      %s\n' "$b" >&2; fi
+    exit 1
+  fi
+  printf '%s' "$resp" | jq '.result'
+}
+
+main() {
+  [ $# -gt 0 ] || usage
+  case "$1" in
+    list)            cmd_list ;;
+    describe|help)   shift; cmd_describe "${1:-}" ;;
+    raw)             shift
+                     [ $# -eq 2 ] || die "raw needs an endpoint and a JSON body"
+                     row_for "$1" >/dev/null || true
+                     call "$1" "$2" ;;
+    -h|--help)       usage ;;
+    *)
+      local name="$1"; shift
+      local row; row=$(row_for "$name")
+      [ -n "$row" ] || die "unknown endpoint: $name (try 'calc list')"
+      # `local body=$(...)` would swallow the exit status (it becomes local's,
+      # which is always 0), so a validation failure inside build_body would
+      # print its message and then send the request anyway. Declare, then
+      # assign, then check.
+      local body
+      body=$(build_body "$(printf '%s' "$row" | cut -d'|' -f2)" "$@") || exit 1
+      call "$name" "$body" ;;
+  esac
+}
+
+main "$@"

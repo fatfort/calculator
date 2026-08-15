@@ -1,0 +1,21 @@
+{
+  "name": "calc-mcp",
+  "version": "1.0.0",
+  "description": "MCP server exposing the calc.fatfort.com calculator API as tools",
+  "type": "module",
+  "private": true,
+  "bin": {
+    "calc-mcp": "src/stdio.js"
+  },
+  "scripts": {
+    "start:stdio": "node src/stdio.js",
+    "start:http": "node src/http.js",
+    "test": "node --test test/*.test.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0"
+  }
+}

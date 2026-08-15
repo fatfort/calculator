@@ -1,0 +1,38 @@
+# Television cable channel for the FatFort calculators.
+#
+# Install:  cp television-calc.toml ~/.config/television/cable/calc.toml
+# Run:      tv calc
+#
+# The source emits "name<TAB>summary" so you can fuzzy-match on either the
+# endpoint name or what it does. `calc describe` and `calc-run` both accept the
+# whole line and take the first field themselves, so this file deliberately
+# uses a plain {} rather than Television's {split:...} placeholder — a tab
+# inside a TOML string is ambiguous (escape sequence vs literal) and is exactly
+# the kind of thing that silently half-works.
+
+[metadata]
+name = "calc"
+description = "FatFort calculators — fuzzy-pick one, read its arguments and limits, run it"
+requirements = ["calc"]
+
+[source]
+command = "calc list"
+
+[preview]
+# Shows the argument list, the reason behind any ceiling, and a copyable example.
+command = "calc describe '{}'"
+
+[ui]
+preview_panel = { size = 55 }
+
+[keybindings]
+# Jump straight to this channel from anywhere in tv.
+shortcut = "f4"
+# Enter keeps its default (print the selection), so `tv calc` is still usable
+# as a picker inside a pipeline. ctrl-r runs the calculator interactively.
+ctrl-r = "actions:run"
+
+[actions.run]
+description = "Run this calculator (prompts for arguments)"
+command = "calc-run '{}'"
+mode = "execute"
