@@ -251,7 +251,26 @@ Then open `frontend/index.html` in a browser, or serve with:
 python3 -m http.server 8000
 ```
 
-## License
+## Contributing
 
-Copyright © 2025 Abaj.ai
+New calculators are welcome — particularly statistical ones, which the current
+set barely touches. Two things make a good addition here:
+
+- **State the bound and the reason.** Every endpoint that can overflow or run
+  long carries an explicit ceiling in `main.go` and a one-line explanation of
+  why (see the Input ceilings table). A caller who is told "21! overflows a
+  64-bit integer" asks a better next question than one who gets a bare
+  rejection. Add the same in `cli/calc`'s `bounds_for()` and the MCP tool
+  schema.
+- **Remember it is public and unauthenticated.** This shares a host with other
+  services, so anything whose cost grows with its input needs a ceiling before
+  it ships.
+
+`calc list` and the MCP tool list are both generated from the endpoint
+manifest, so adding an endpoint in one place surfaces it in all three
+interfaces.
+
+## Licence
+
+MIT — see [LICENSE](LICENSE). Copyright © 2025-2026 Aayush Bajaj
 
