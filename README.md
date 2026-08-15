@@ -82,7 +82,7 @@ Built with a Go backend and a vanilla-JavaScript frontend, no build step.
 
 ### Backend (Go)
 - Port: 27439
-- Location: `backend/` (deployed at `/path/to/calculator` )
+- Location: `backend/`
 - Optimal algorithms with minimal time and space complexity
 - RESTful API with JSON responses
 - CORS enabled for cross-origin requests
@@ -122,7 +122,7 @@ which ran as `User=root`) and the OpenResty vhost are both retired — the
 container runs as uid 1002 with `mem_limit: 64m` and `cpus: 0.5`.
 
 ```bash
-cd /path/to/calculator
+cd calculator
 docker compose build && docker compose up -d
 ```
 
